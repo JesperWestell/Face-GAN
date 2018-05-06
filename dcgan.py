@@ -115,7 +115,7 @@ class Discriminator(nn.Module):
 class DCGAN():
     def __init__(self,
                  dataroot,
-                 workers=2,
+                 workers=5,
                  batch_size=64,
                  nz=100,
                  ngf=64,
@@ -246,6 +246,6 @@ class DCGAN():
 
 
 dcgan = DCGAN('../data/resized_celebA/')
-dcgan.train(2)
+dcgan.train(25)
 
 print('done')
