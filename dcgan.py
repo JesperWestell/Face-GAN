@@ -27,6 +27,24 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+def save_checkpoint(checkpoint_path, model, optimizerD, optimizerG):
+    state = {'netD': model.netD.state_dict(),
+             'netG': model.netG.state_dict(),
+             'optimizerD': optimizerD.state_dict(),
+             'optimizerG': optimizerG.state_dict()}
+    torch.save(state, checkpoint_path)
+    print('model saved to %s' % checkpoint_path)
+
+
+def load_checkpoint(checkpoint_path, model, optimizerD, optimizerG):
+    state = torch.load(checkpoint_path)
+    model.netD.load_state_dict(state['netD'])
+    model.netG.load_state_dict(state['netG'])
+    optimizerD.load_state_dict(state['optimizerD'])
+    optimizerG.load_state_dict(state['optimizerG'])
+    print('model loaded from %s' % checkpoint_path)
+
+
 class Generator(nn.Module):
     def __init__(self, ngpu, nz, ngf, nc):
         super(Generator, self).__init__()
@@ -214,10 +232,17 @@ class DCGAN():
                                       normalize=True)
 
             # do checkpointing
-            torch.save(self.netG.state_dict(),
-                       '%s/netG_epoch_%d.pth' % (out_folder, epoch))
-            torch.save(self.netD.state_dict(),
-                       '%s/netD_epoch_%d.pth' % (out_folder, epoch))
+            save_checkpoint('%s/dcgan_epoch_%d.pth' % (out_folder, epoch),
+                            self,
+                            optimizerD, optimizerG)
+    def sample(self, num_samples):
+        noise = torch.randn(num_samples, self.nz, 1, 1, device=self.device)
+        imgs = self.netG(noise)
+        vutils.save_image(imgs.detach(),
+                          '%s/samples.png' % out_folder,
+                          normalize=True)
+
+
 
 
 dcgan = DCGAN('../data/resized_celebA/')
