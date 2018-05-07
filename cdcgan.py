@@ -1,5 +1,4 @@
 from __future__ import print_function
-import argparse
 import os
 import random
 import torch
@@ -8,12 +7,11 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from dataset import CelebADataset
-import numpy as np
+from utils import PrintLayer, AttributeGenerator
 
 out_folder = './dcgan_out/'
 try:
@@ -29,28 +27,6 @@ def weights_init(m):
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
-
-class PrintLayer(nn.Module):
-    # For Debugging purposes
-    def __init__(self):
-        super(PrintLayer, self).__init__()
-
-    def forward(self, input):
-        print(input.size())
-        return input
-
-class AttributeGenerator():
-    # Generates attributes given a binomial distribution from data
-    # Assumes all attributes are independent, which is most probably not
-    # completely true
-    # Return shape: (num_samples, 40, 1, 1)
-    def __init__(self, attributes):
-        self.probs = torch.from_numpy((np.mean((attributes+1)/2, axis=0)))
-        self.binomial = torch.distributions.Binomial(probs=self.probs)
-
-    def sample(self, num_samples):
-        samples = 2*self.binomial.sample((num_samples,))-1
-        return samples
 
 class YModule(nn.Module):
     # Simple wrapper for network with two inputs and one output,
@@ -230,7 +206,7 @@ class cDCGAN():
                 "WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 
-        dataset = CelebADataset(root=dataroot,
+        self.dataset = CelebADataset(root=dataroot,
                         attr_file=attr_file,
                         transform=transforms.Compose([
                             transforms.ToTensor(),
@@ -238,7 +214,7 @@ class cDCGAN():
                                                  (1, 1, 1)),
                         ]))
 
-        self.dataloader = torch.utils.data.DataLoader(dataset,
+        self.dataloader = torch.utils.data.DataLoader(self.dataset,
                                                       batch_size=batch_size,
                                                       shuffle=True,
                                                       num_workers=workers)
@@ -264,10 +240,13 @@ class cDCGAN():
                                 betas=(0.9, 0.999))
         self.optimizerG = optim.Adam(self.netG.parameters(), lr=lr,
                                 betas=(0.9, 0.999))
-        self.attribute_generator = AttributeGenerator(dataset.get_attributes())
+        self.G_attribute_generator = \
+            AttributeGenerator(self.dataset.get_attributes(), 0.25)
+        self.D_attribute_generator = \
+            AttributeGenerator(self.dataset.get_attributes(), 0.10)
 
         self.fixed_noise = torch.randn(batch_size, nz, 1, 1, device=self.device)
-        self.fixed_attributes = self.attribute_generator.sample(batch_size)
+        self.fixed_attributes = self.G_attribute_generator.sample(batch_size)
 
     def train(self, niter=25, checkpoint = None):
         if checkpoint != None:
@@ -290,17 +269,17 @@ class cDCGAN():
                 # train with real
                 self.netD.zero_grad()
                 real_cpu = data[0].to(self.device)
-                real_attr = data[1].to(self.device)
+                real_attr = data[1]
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label, device=self.device)
 
-                output = self.netD(real_cpu, real_attr)
+                output = self.netD(real_cpu, self.D_attribute_generator.add_noise(real_attr).to(self.device))
                 errD_real = self.criterion(output, label)
                 errD_real.backward()
                 D_x = output.mean().item()
 
                 # train with fake
-                fake_attr = self.attribute_generator.sample(batch_size).to(self.device)
+                fake_attr = self.G_attribute_generator.sample(batch_size).to(self.device)
                 noise = torch.randn(batch_size, self.nz, 1, 1, device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
@@ -326,12 +305,21 @@ class cDCGAN():
                 print(
                     '[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
                     % (epoch, niter, i, len(self.dataloader),
+
                        errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-                writer.add_scalars('D/loss', {'D loss': errD.item()})
-                writer.add_scalars('D/D(x)', {'D(x)': D_x})
-                writer.add_scalars('G/loss', {'G loss': errG.item()})
-                writer.add_scalars('D/D(G(z))', {'D_G_z1': D_G_z1,
-                                                 'D_G_z2': D_G_z2})
+                step = epoch*len(self.dataset) + i
+                writer.add_scalars('D/loss',
+                                   {'D loss': errD.item()},
+                                   global_step=step)
+                writer.add_scalars('D/D(x)',
+                                   {'D(x)': D_x},
+                                   global_step=step)
+                writer.add_scalars('G/loss',
+                                   {'G loss': errG.item()},
+                                   global_step=step)
+                writer.add_scalars('D/D(G(z))',
+                                   {'D_G_z1': D_G_z1, 'D_G_z2': D_G_z2},
+                                   global_step=step)
                 if i % 100 == 0:
                     vutils.save_image(real_cpu,
                                       '%s/real_samples.png' % out_folder,
