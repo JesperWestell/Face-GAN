@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from dataset import CelebADataset
+import numpy as np
 
 out_folder = './dcgan_out/'
 try:
@@ -29,13 +30,91 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+class PrintLayer(nn.Module):
+    # For Debugging purposes
+    def __init__(self):
+        super(PrintLayer, self).__init__()
+
+    def forward(self, input):
+        print(input.size())
+        return input
+
+class AttributeGenerator():
+    # Generates attributes given a binomial distribution from data
+    # Assumes all attributes are independent, which is most probably not
+    # completely true
+    # Return shape: (num_samples, 40, 1, 1)
+    def __init__(self, attributes):
+        self.probs = torch.from_numpy((np.mean((attributes+1)/2, axis=0)))
+        self.binomial = torch.distributions.Binomial(probs=self.probs)
+
+    def sample(self, num_samples):
+        samples = 2*self.binomial.sample((num_samples,))-1
+        return samples
+
+class YModule(nn.Module):
+    # Simple wrapper for network with two inputs and one output,
+    # hence a Y network
+    def __init__(self, in1, in2, out):
+        super(YModule, self).__init__()
+        self.in1 = in1
+        self.in2 = in2
+        self.out = out
+
+    def forward(self, input):
+        input1, input2 = input
+        out1 = self.in1(input1)
+        out2 = self.in2(input2)
+        output = self.out(torch.cat([out1, out2],1))
+        return output
+
+class Expand(nn.Module):
+    # Expands a tensor, from c, 1, 1 to c, d, d
+    def __init__(self, d):
+        super(Expand, self).__init__()
+        self.d = d
+
+    def forward(self, input):
+        output = input.expand(-1, -1, self.d, self.d)
+        return output
+
+class Unsqueeze(nn.Module):
+    # Simple wrapper for network with two inputs and one output,
+    # hence a Y network
+    def __init__(self):
+        super(Unsqueeze, self).__init__()
+
+    def forward(self, input):
+        output = input.unsqueeze(-1).unsqueeze(-1)
+        return output.float()
+
 class Generator(nn.Module):
     def __init__(self, ngpu, nz, ngf, nc):
         super(Generator, self).__init__()
         self.ngpu = ngpu
-        self.main = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
+        noise_layer = nn.Sequential(
+            # input is z, going into a convolution
+            # state size. (nz) x 1 x 1
+            nn.ConvTranspose2d(nz, ngf * 8, 2, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True)
+            # state size. (ngf*8) x 2 x 2
+            )
+        attribute_layer = nn.Sequential(
+            # input is t, going into a convolution
+            # state size. 40
+            Unsqueeze(),
+            # state size. 40 x 1 x 1
+            nn.ConvTranspose2d(40, ngf, 2, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True)
+            # state size. (ngf) x 2 x 2
+            )
+        output_layer = nn.Sequential(
+            # input is noise_layer(z) + attribute_layer(t),
+            # going into a convolution
+            # state size. (ngf*9) x 2 x 2
+            nn.ConvTranspose2d(ngf * 9, ngf * 8, 3, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -54,20 +133,23 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
             # state size. (nc) x 64 x 64
-        )
+            )
+        self.main = YModule(noise_layer, attribute_layer, output_layer)
 
-    def forward(self, input):
+    def forward(self, input, attribute):
         if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+            output = nn.parallel.data_parallel(self.main(),
+                                               (input, attribute),
+                                               range(self.ngpu))
         else:
-            output = self.main(input)
+            output = self.main((input, attribute))
         return output
 
 class Discriminator(nn.Module):
     def __init__(self, ngpu, ndf, nc):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
-        self.main = nn.Sequential(
+        image_layer = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
@@ -84,19 +166,39 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
+        )
+
+        attribute_layer = nn.Sequential(
+            # state size. 40
+            Unsqueeze(),
+            # input is 40 x 1 x 1
+            Expand(4)
+            # state size. 40 x 4 x 4
+        )
+
+        output_layer = nn.Sequential(
+            # input is image_layer(z) + attribute_layer(t)
+            # state size. (ndf*8 + 40) x 4 x 4
+            nn.Conv2d(ndf*8 + 40, ndf*8, 1, 1, 0, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
-    def forward(self, input):
+        self.main = YModule(image_layer, attribute_layer, output_layer)
+
+    def forward(self, input, attribute):
         if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+            output = nn.parallel.data_parallel(self.main(),
+                                               (input, attribute),
+                                               range(self.ngpu))
         else:
-            output = self.main(input)
+            output = self.main((input, attribute))
 
         return output.view(-1, 1).squeeze(1)
 
-class DCGAN():
+class cDCGAN():
     def __init__(self,
                  dataroot,
                  attr_file,
@@ -156,13 +258,16 @@ class DCGAN():
         print(self.netD)
 
         self.criterion = nn.BCELoss()
-        self.fixed_noise = torch.randn(batch_size, nz, 1, 1, device=self.device)
 
         # setup optimizer
         self.optimizerD = optim.Adam(self.netD.parameters(), lr=lr,
                                 betas=(0.9, 0.999))
         self.optimizerG = optim.Adam(self.netG.parameters(), lr=lr,
                                 betas=(0.9, 0.999))
+        self.attribute_generator = AttributeGenerator(dataset.get_attributes())
+
+        self.fixed_noise = torch.randn(batch_size, nz, 1, 1, device=self.device)
+        self.fixed_attributes = self.attribute_generator.sample(batch_size)
 
     def train(self, niter=25, checkpoint = None):
         if checkpoint != None:
@@ -172,7 +277,7 @@ class DCGAN():
                 print(' [*] No checkpoint!')
                 self.current_epoch = 0
 
-        writer = SummaryWriter('./summaries/dcgan')
+        writer = SummaryWriter('./summaries/cdcgan')
 
         real_label = 1
         fake_label = 0
@@ -180,24 +285,26 @@ class DCGAN():
         for epoch in range(self.current_epoch, self.current_epoch+niter):
             for i, data in enumerate(self.dataloader, 0):
                 ############################
-                # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+                # (1) Update D network: maximize log(D(x,y)) + log(1 - D(G(z,y),y))
                 ###########################
                 # train with real
                 self.netD.zero_grad()
                 real_cpu = data[0].to(self.device)
+                real_attr = data[1].to(self.device)
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label, device=self.device)
 
-                output = self.netD(real_cpu)
+                output = self.netD(real_cpu, real_attr)
                 errD_real = self.criterion(output, label)
                 errD_real.backward()
                 D_x = output.mean().item()
 
                 # train with fake
+                fake_attr = self.attribute_generator.sample(batch_size).to(self.device)
                 noise = torch.randn(batch_size, self.nz, 1, 1, device=self.device)
-                fake = self.netG(noise)
+                fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
-                output = self.netD(fake.detach())
+                output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
                 errD_fake.backward()
                 D_G_z1 = output.mean().item()
@@ -210,7 +317,7 @@ class DCGAN():
                 self.netG.zero_grad()
                 label.fill_(
                     real_label)  # fake labels are real for generator cost
-                output = self.netD(fake)
+                output = self.netD(fake, fake_attr)
                 errG = self.criterion(output, label)
                 errG.backward()
                 D_G_z2 = output.mean().item()
@@ -229,14 +336,14 @@ class DCGAN():
                     vutils.save_image(real_cpu,
                                       '%s/real_samples.png' % out_folder,
                                       normalize=True)
-                    fake = self.netG(self.fixed_noise)
+                    fake = self.netG(self.fixed_noise, self.fixed_attributes)
                     vutils.save_image(fake.detach(),
                                       '%s/fake_samples_epoch_%03d.png' % (
                                       out_folder, epoch),
                                       normalize=True)
 
             # do checkpointing
-            self.save_checkpoint('%s/dcgan_epoch_%d.pth' % (out_folder, epoch))
+            self.save_checkpoint('%s/cdcgan_epoch_%d.pth' % (out_folder, epoch))
 
     def sample(self, num_samples):
         noise = torch.randn(num_samples, self.nz, 1, 1, device=self.device)
@@ -264,7 +371,7 @@ class DCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-dcgan = DCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt')
+dcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt')
 dcgan.train(25)
 
 print('done')
