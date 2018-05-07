@@ -1,2 +1,4 @@
 # Data
 data/*
+# All saved params
+*.pth
