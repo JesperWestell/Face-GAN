@@ -128,7 +128,7 @@ class DCGAN():
                 "WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 
-        dataset = CelebADataset(root=dataroot,
+        self.dataset = CelebADataset(root=dataroot,
                         attr_file=attr_file,
                         transform=transforms.Compose([
                             transforms.ToTensor(),
@@ -136,7 +136,7 @@ class DCGAN():
                                                  (1, 1, 1)),
                         ]))
 
-        self.dataloader = torch.utils.data.DataLoader(dataset,
+        self.dataloader = torch.utils.data.DataLoader(self.dataset,
                                                       batch_size=batch_size,
                                                       shuffle=True,
                                                       num_workers=workers)
@@ -220,11 +220,19 @@ class DCGAN():
                     '[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
                     % (epoch, niter, i, len(self.dataloader),
                        errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-                writer.add_scalars('D/loss', {'D loss': errD.item()})
-                writer.add_scalars('D/D(x)', {'D(x)': D_x})
-                writer.add_scalars('G/loss', {'G loss': errG.item()})
-                writer.add_scalars('D/D(G(z))', {'D_G_z1': D_G_z1,
-                                                 'D_G_z2': D_G_z2})
+                step = epoch * len(self.dataset) + i
+                writer.add_scalars('D/loss',
+                                   {'D loss': errD.item()},
+                                   global_step=step)
+                writer.add_scalars('D/D(x)',
+                                   {'D(x)': D_x},
+                                   global_step=step)
+                writer.add_scalars('G/loss',
+                                   {'G loss': errG.item()},
+                                   global_step=step)
+                writer.add_scalars('D/D(G(z))',
+                                   {'D_G_z1': D_G_z1, 'D_G_z2': D_G_z2},
+                                   global_step=step)
                 if i % 100 == 0:
                     vutils.save_image(real_cpu,
                                       '%s/real_samples.png' % out_folder,
