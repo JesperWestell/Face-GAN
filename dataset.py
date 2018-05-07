@@ -96,6 +96,9 @@ class CelebADataset(data.Dataset):
     def get_attributes(self):
         return self.attr
 
+    def get_attribute_names(self):
+        return self.attr_names
+
     def __len__(self):
         return len(self.imgs)
 

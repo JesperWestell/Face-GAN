@@ -11,9 +11,9 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from dataset import CelebADataset
-from utils import PrintLayer, AttributeGenerator
+from utils import PrintLayer, AttributeGenerator, generate_fixed
 
-out_folder = './dcgan_out/'
+out_folder = './cdcgan_out/'
 try:
     os.makedirs(out_folder)
 except OSError:
@@ -245,8 +245,14 @@ class cDCGAN():
         self.D_attribute_generator = \
             AttributeGenerator(self.dataset.get_attributes(), 0.10)
 
+        # Used when plotting arbitrary faces
         self.fixed_noise = torch.randn(batch_size, nz, 1, 1, device=self.device)
         self.fixed_attributes = self.G_attribute_generator.sample(batch_size)
+        # Used when plotting conditional faces
+        self.gradient_noise = torch.randn(8, nz, 1, 1, device=self.device)
+        self.gradient_noise = self.gradient_noise.repeat(1,8,1,1).view((8, 8,nz,1,1)).view(8*8,nz,1,1)
+        self.gradient_attributes = generate_fixed(self.D_attribute_generator,
+                                                  self.dataset.get_attribute_names())
 
     def train(self, niter=25, checkpoint = None):
         if checkpoint != None:
@@ -321,13 +327,18 @@ class cDCGAN():
                                    {'D_G_z1': D_G_z1, 'D_G_z2': D_G_z2},
                                    global_step=step)
                 if i % 100 == 0:
-                    vutils.save_image(real_cpu,
+                    vutils.save_image(real_cpu[:64],
                                       '%s/real_samples.png' % out_folder,
                                       normalize=True)
-                    fake = self.netG(self.fixed_noise, self.fixed_attributes)
+                    fake = self.netG(self.fixed_noise[:64], self.fixed_attributes[:64])
                     vutils.save_image(fake.detach(),
                                       '%s/fake_samples_epoch_%03d.png' % (
                                       out_folder, epoch),
+                                      normalize=True)
+                    fake = self.netG(self.gradient_noise[:64], self.gradient_attributes[:64])
+                    vutils.save_image(fake.detach(),
+                                      '%s/gradient_samples_epoch_%03d.png' % (
+                                          out_folder, epoch),
                                       normalize=True)
 
             # do checkpointing

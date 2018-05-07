@@ -31,3 +31,18 @@ class AttributeGenerator():
     def add_noise(self, attributes):
         noise = self.noise.sample((attributes.shape[0],))
         return attributes.float() + noise
+
+ATTRIBUTES = ['Black_Hair', 'Blond_Hair', 'Eyeglasses', 'Male',
+              'No_Beard', 'Smiling', 'Wearing_Hat', 'Young']
+
+def generate_fixed(generator, all_attributes):
+    full_lst = []
+    fixed_attributes = generator.sample(8)
+    for i, attr in enumerate(ATTRIBUTES):
+        idx = all_attributes.index(attr)
+        fixed = fixed_attributes[i]
+        for x in [-1, -0.75, -0.5, -0.2, 0.2, 0.5, 0.75, 1]:
+            new = fixed.clone()
+            new[idx] = x
+            full_lst.append(new)
+    return torch.stack(full_lst, 0)
