@@ -26,7 +26,8 @@ class AttributeGenerator():
 
     def sample(self, num_samples):
         bin_samples = 2*self.binomial.sample((num_samples,))-1
-        return self.add_noise(bin_samples)
+        #return self.add_noise(bin_samples)
+        return bin_samples
 
     def add_noise(self, attributes):
         noise = self.noise.sample((attributes.shape[0],))

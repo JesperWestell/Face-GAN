@@ -39,6 +39,7 @@ class YModule(nn.Module):
 
     def forward(self, input):
         input1, input2 = input
+        #print(input2.unique())
         out1 = self.in1(input1)
         out2 = self.in2(input2)
         output = self.out(torch.cat([out1, out2],1))
@@ -191,7 +192,7 @@ class cDCGAN():
                  netD='',
                  random_seed=None):
         self.nz = nz
-        self.current_epoch = 0;
+        self.current_epoch = 1
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -275,11 +276,13 @@ class cDCGAN():
                 # train with real
                 self.netD.zero_grad()
                 real_cpu = data[0].to(self.device)
-                real_attr = data[1]
+                #real_attr = data[1]
+                real_attr = data[1].to(self.device)
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label, device=self.device)
 
-                output = self.netD(real_cpu, self.D_attribute_generator.add_noise(real_attr).to(self.device))
+                #output = self.netD(real_cpu, self.D_attribute_generator.add_noise(real_attr).to(self.device))
+                output = self.netD(real_cpu, real_attr)
                 errD_real = self.criterion(output, label)
                 errD_real.backward()
                 D_x = output.mean().item()
@@ -313,7 +316,8 @@ class cDCGAN():
                     % (epoch, niter, i, len(self.dataloader),
 
                        errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-                step = epoch*len(self.dataset) + i
+                step = epoch*int(len(self.dataset)/batch_size) + 1 + i
+                print(step)
                 writer.add_scalars('D/loss',
                                    {'D loss': errD.item()},
                                    global_step=step)
