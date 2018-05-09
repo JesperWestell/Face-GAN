@@ -192,7 +192,7 @@ class cDCGAN():
                  netD='',
                  random_seed=None):
         self.nz = nz
-        self.current_epoch = 1
+        self.current_epoch = 0
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -317,7 +317,7 @@ class cDCGAN():
 
                        errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
                 step = epoch*int(len(self.dataset)/batch_size) + 1 + i
-                print(step)
+                
                 writer.add_scalars('D/loss',
                                    {'D loss': errD.item()},
                                    global_step=step)
