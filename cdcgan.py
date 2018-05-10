@@ -363,7 +363,6 @@ class cDCGAN():
         self.netG.load_state_dict(state['netG'])
         self.optimizerD.load_state_dict(state['optimizerD'])
         self.optimizerG.load_state_dict(state['optimizerG'])
-        self.current_epoch = 16
         print('model loaded from %s' % checkpoint_path)
 
     def save_checkpoint(self, checkpoint_path):
