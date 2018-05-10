@@ -268,7 +268,7 @@ class cDCGAN():
         real_label = 1
         fake_label = 0
 
-        for epoch in range(self.current_epoch, self.current_epoch+niter):
+        for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize log(D(x,y)) + log(1 - D(G(z,y),y))
@@ -346,6 +346,7 @@ class cDCGAN():
                                       normalize=True)
 
             # do checkpointing
+            self.current_epoch = epoch
             self.save_checkpoint('%s/cdcgan_epoch_%d.pth' % (out_folder, epoch))
 
     def sample(self, num_samples):
@@ -357,11 +358,12 @@ class cDCGAN():
 
     def load_checkpoint(self, checkpoint_path):
         state = torch.load(checkpoint_path)
-        self.current_epoch = state['epoch']
+        self.current_epoch = state['epoch'] + 1 # Start on next epoch
         self.netD.load_state_dict(state['netD'])
         self.netG.load_state_dict(state['netG'])
         self.optimizerD.load_state_dict(state['optimizerD'])
         self.optimizerG.load_state_dict(state['optimizerG'])
+        self.current_epoch = 16
         print('model loaded from %s' % checkpoint_path)
 
     def save_checkpoint(self, checkpoint_path):
@@ -374,7 +376,7 @@ class cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-dcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt')
-dcgan.train(25)
+dcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', lr=4e-5)
+dcgan.train(25, checkpoint='./cdcgan_out/cdcgan_epoch_15.pth')
 
 print('done')
