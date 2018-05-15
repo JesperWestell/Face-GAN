@@ -356,6 +356,23 @@ class cDCGAN():
                           '%s/samples.png' % out_folder,
                           normalize=True)
 
+    def load_and_sample(self, checkpoint=None, save_path=out_folder+'test'):
+        if checkpoint != None:
+            try:
+                self.load_checkpoint(checkpoint)
+            except:
+                print(' [*] No checkpoint!')
+                self.current_epoch = 0
+        fake = self.netG(self.fixed_noise[:64], self.fixed_attributes[:64])
+        vutils.save_image(fake,save_path+'_sample.png',
+                          normalize=True)
+        fake = self.netG(self.gradient_noise[:64],
+                         self.gradient_attributes[:64])
+        vutils.save_image(fake,save_path+'_gradient.png',
+                          normalize=True)
+
+
+
     def load_checkpoint(self, checkpoint_path):
         state = torch.load(checkpoint_path)
         self.current_epoch = state['epoch'] + 1 # Start on next epoch
@@ -375,7 +392,8 @@ class cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-dcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', lr=4e-5)
-dcgan.train(25, checkpoint='./cdcgan_out/cdcgan_epoch_15.pth')
+cdcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', lr=4e-5)
+#dcgan.train(25, checkpoint='./cdcgan_out/cdcgan_epoch_15.pth')
+cdcgan.load_and_sample(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
 
 print('done')

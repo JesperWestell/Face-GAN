@@ -48,7 +48,7 @@ def load_attributes(filename):
         files = np.loadtxt(f, usecols=[0], dtype=np.str)
         f.seek(0)
         data = np.loadtxt(f, usecols=[i + 1 for i in range(len(attributes))],
-                          dtype=np.int, skiprows=2)
+                          dtype=np.float32, skiprows=2)
     assert files.size == data.shape[0]
     print("Finished loading {}".format(filename))
     return attributes, data
@@ -90,7 +90,6 @@ class CelebADataset(data.Dataset):
             img = self.transform(img)
         if self.target_transform is not None:
             target = self.target_transform(target)
-
         return img, target
 
     def get_attributes(self):
