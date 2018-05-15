@@ -19,7 +19,6 @@ try:
 except OSError:
     pass
 
-
 def weights_init(m):
     # custom weights initialization called on netG and netD
     classname = m.__class__.__name__
@@ -219,7 +218,12 @@ class mod_cDCGAN():
         if torch.cuda.is_available() and not cuda:
             print(
                 "WARNING: You have a CUDA device, so you should probably run with --cuda")
-
+        
+        if cuda:
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.FloatTensor 
+        
         self.dataset = CelebADataset(root=dataroot,
                                      attr_file=attr_file,
                                      transform=transforms.Compose([
@@ -237,13 +241,13 @@ class mod_cDCGAN():
 
         self.device = torch.device("cuda:0" if cuda else "cpu")
 
-        self.netG = Generator(ngpu, nz, ngf, nc).to(self.device)
+        self.netG = Generator(ngpu, nz, ngf, nc).type(self.dtype).to(self.device)
         self.netG.apply(weights_init)
         if netG != '':
             self.netG.load_state_dict(torch.load(netG))
         print(self.netG)
 
-        self.netD = Discriminator(ngpu, ndf, nc).to(self.device)
+        self.netD = Discriminator(ngpu, ndf, nc).type(self.dtype).to(self.device)
         self.netD.apply(weights_init)
         if netD != '':
             self.netD.load_state_dict(torch.load(netD))
@@ -262,15 +266,15 @@ class mod_cDCGAN():
             AttributeGenerator(self.dataset.get_attributes(), 0.10)
 
         # Used when plotting arbitrary faces
-        self.fixed_noise = torch.randn(batch_size, nz, 1, 1, device=self.device)
-        self.fixed_attributes = self.G_attribute_generator.sample(batch_size)
+        self.fixed_noise = torch.randn(batch_size, nz, 1, 1, device=self.device).type(self.dtype)
+        self.fixed_attributes = self.G_attribute_generator.sample(batch_size).type(self.dtype)
         # Used when plotting conditional faces
-        self.gradient_noise = torch.randn(8, nz, 1, 1, device=self.device)
+        self.gradient_noise = torch.randn(8, nz, 1, 1, device=self.device).type(self.dtype)
         self.gradient_noise = self.gradient_noise.repeat(1, 8, 1, 1).view(
             (8, 8, nz, 1, 1)).view(8 * 8, nz, 1, 1)
         self.gradient_attributes = generate_fixed(self.D_attribute_generator,
-                                                  self.dataset.get_attribute_names())
-
+                                                  self.dataset.get_attribute_names()).type(self.dtype)
+        
     def train(self, niter=25, checkpoint=None):
         if checkpoint != None:
             try:
@@ -411,7 +415,7 @@ class mod_cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt')
+mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
 mod_cdcgan.train(25)
 
 print('done')
