@@ -301,8 +301,8 @@ class mod_cDCGAN():
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                label = flip_labels(label, 0.2, self.dtype)
-                label = smooth_labels(label, device=self.device)
+                label = flip_labels(label, 0.1, self.dtype)
+                label = smooth_labels(label, device=self.device, type=self.dtype)
 
 
                 output = self.netD(real_cpu, real_attr)
@@ -317,8 +317,8 @@ class mod_cDCGAN():
                                     device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
-                label = flip_labels(label, 0.2, self.dtype)
-                label = smooth_labels(label, device=self.device)
+                label = flip_labels(label, 0.1, self.dtype)
+                label = smooth_labels(label, device=self.device, type=self.dtype)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
                 errD_fake.backward()
@@ -337,7 +337,7 @@ class mod_cDCGAN():
                 self.netG.zero_grad()
                 label.fill_(
                     real_label)  # fake labels are real for generator cost
-                label = smooth_labels(label, device=self.device)
+                label = smooth_labels(label, device=self.device, type=self.dtype)
                 output = self.netD(fake, fake_attr)
                 errG = self.criterion(output, label)
                 errG.backward(retain_graph=True)
@@ -425,7 +425,7 @@ class mod_cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
+mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
 mod_cdcgan.train(25)
 
 print('done')
