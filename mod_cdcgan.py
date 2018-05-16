@@ -283,6 +283,8 @@ class mod_cDCGAN():
         real_label = 1
         fake_label = 0
 
+        smooth_strength = 0.1
+
         for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
                 ############################
@@ -297,7 +299,8 @@ class mod_cDCGAN():
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
                 #label = flip_labels(label, 0.1, self.dtype)
-                label = smooth_labels(label, device=self.device, type=self.dtype)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
 
 
                 output = self.netD(real_cpu, real_attr)
@@ -313,7 +316,8 @@ class mod_cDCGAN():
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
                 #label = flip_labels(label, 0.1, self.dtype)
-                label = smooth_labels(label, device=self.device, type=self.dtype)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
                 errD_fake.backward()
@@ -332,7 +336,8 @@ class mod_cDCGAN():
                 self.netG.zero_grad()
                 label.fill_(
                     real_label)  # fake labels are real for generator cost
-                label = smooth_labels(label, device=self.device, type=self.dtype)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 output = self.netD(fake, fake_attr)
                 errG = self.criterion(output, label)
                 errG.backward(retain_graph=True)
