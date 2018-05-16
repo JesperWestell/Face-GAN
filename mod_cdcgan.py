@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from dataset import CelebADataset
-from utils import PrintLayer, AttributeGenerator, generate_fixed
+from utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels,flip_labels
 
 out_folder = './mod_cdcgan_out/'
 try:
@@ -301,8 +301,10 @@ class mod_cDCGAN():
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
+                label = flip_labels(label, 0.2)
+                label = smooth_labels(label, device=self.device)
 
-                # output = self.netD(real_cpu, self.D_attribute_generator.add_noise(real_attr).to(self.device))
+
                 output = self.netD(real_cpu, real_attr)
                 errD_real = self.criterion(output, label)
                 errD_real.backward()
@@ -315,6 +317,8 @@ class mod_cDCGAN():
                                     device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
+                label = flip_labels(label, 0.2)
+                label = smooth_labels(label, device=self.device)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
                 errD_fake.backward()
@@ -325,23 +329,20 @@ class mod_cDCGAN():
                 ############################
                 # (2) Update G network: maximize log(D(G(z)))
                 ###########################
-                errG = 20
-                iterG = 0
-                while errG > 12 and iterG < 5:
-                    iterG += 1
-                    fake_attr = self.G_attribute_generator.sample(batch_size).to(
-                       self.device)
-                    noise = torch.randn(batch_size, self.nz, 1, 1,
-                                    device=self.device)
-                    fake = self.netG(noise, fake_attr)
-                    self.netG.zero_grad()
-                    label.fill_(
-                        real_label)  # fake labels are real for generator cost
-                    output = self.netD(fake, fake_attr)
-                    errG = self.criterion(output, label)
-                    errG.backward(retain_graph=True)
-                    D_G_z2 = output.mean().item()
-                    self.optimizerG.step()
+                fake_attr = self.G_attribute_generator.sample(batch_size).to(
+                   self.device)
+                noise = torch.randn(batch_size, self.nz, 1, 1,
+                                device=self.device)
+                fake = self.netG(noise, fake_attr)
+                self.netG.zero_grad()
+                label.fill_(
+                    real_label)  # fake labels are real for generator cost
+                label = smooth_labels(label, device=self.device)
+                output = self.netD(fake, fake_attr)
+                errG = self.criterion(output, label)
+                errG.backward(retain_graph=True)
+                D_G_z2 = output.mean().item()
+                self.optimizerG.step()
 
                 print(
                     '[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
@@ -424,7 +425,7 @@ class mod_cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
+mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
 mod_cdcgan.train(25)
 
 print('done')
