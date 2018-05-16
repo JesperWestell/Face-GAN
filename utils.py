@@ -47,3 +47,15 @@ def generate_fixed(generator, all_attributes):
             new[idx] = x
             full_lst.append(new)
     return torch.stack(full_lst, 0)
+
+def smooth_labels(labels, device):
+    # Labels needs to be in {0,1}
+    N = labels.shape
+    res = torch.zeros(N, device=device)
+    res += labels * (0.5 * torch.rand(N) + 0.7)
+    res += (1-labels) * 0.3 * torch.rand(N)
+    return res
+
+def flip_labels(labels, prob):
+    labels += (1-2*labels)*torch.bernoulli(torch.full(labels.shape, prob))
+    return labels
