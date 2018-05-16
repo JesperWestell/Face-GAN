@@ -56,6 +56,6 @@ def smooth_labels(labels, device):
     res += (1-labels) * 0.3 * torch.rand(N)
     return res
 
-def flip_labels(labels, prob):
-    labels += (1-2*labels)*torch.bernoulli(torch.full(labels.shape, prob))
+def flip_labels(labels, prob, type):
+    labels += (1-2*labels)*torch.bernoulli(torch.full(labels.shape, prob)).type(type)
     return labels

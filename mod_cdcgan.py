@@ -301,7 +301,7 @@ class mod_cDCGAN():
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                label = flip_labels(label, 0.2)
+                label = flip_labels(label, 0.2, self.dtype)
                 label = smooth_labels(label, device=self.device)
 
 
@@ -317,7 +317,7 @@ class mod_cDCGAN():
                                     device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
-                label = flip_labels(label, 0.2)
+                label = flip_labels(label, 0.2, self.dtype)
                 label = smooth_labels(label, device=self.device)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
