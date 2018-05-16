@@ -82,13 +82,9 @@ class Generator(nn.Module):
         attribute_layer = nn.Sequential(
             # input is attributes
             # state size. 40
-            nn.Linear(40, ngf * 2, bias=False),
-            nn.BatchNorm1d(ngf * 2),
-            nn.LeakyReLU(0.1, inplace=True),
-            # state size. (ngf*2)
             Unsqueeze(),
-            # state size. (ngf*2) x 1 x 1
-            nn.ConvTranspose2d(ngf*2, ngf*4, 2, 1, 0, bias=False),
+            # state size. (40) x 1 x 1
+            nn.ConvTranspose2d(40, ngf*4, 2, 1, 0, bias=False),
             nn.BatchNorm2d(ngf*4),
             nn.LeakyReLU(0.1, inplace=True)
             # state size. (ngf*4) x 2 x 2
@@ -154,24 +150,24 @@ class Discriminator(nn.Module):
 
         attribute_layer = nn.Sequential(
             # state size. 40
-            nn.Linear(40, ndf * 2, bias=False),
-            nn.BatchNorm1d(ndf * 2),
-            nn.LeakyReLU(0.1, inplace=True),
-            # state size. (ndf*2)
             Unsqueeze(),
-            # input is (ndf*2) x 1 x 1
-            Expand(4)
-            # state size. (ndf*2) x 4 x 4
+            # input is 40 x 1 x 1
+            nn.ConvTranspose2d(40, ndf * 4, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.1, inplace=True)
+            # state size. (ndf*4) x 4 x 4
         )
 
         output_layer = nn.Sequential(
             # input is image_layer(z) + attribute_layer(t)
-            # state size. (ndf*8 + ndf*2) x 4 x 4
-            nn.Conv2d(ndf * 10, ndf * 8, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(ndf * 8),
-            nn.LeakyReLU(0.1, inplace=True),
+            # state size. (ndf*8 + ndf*4) x 4 x 4
+
+            # nn.Conv2d(ndf * 12, ndf * 8, 1, 1, 0, bias=False),
+            # nn.BatchNorm2d(ndf * 8),
+            # nn.LeakyReLU(0.1, inplace=True),
             # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+
+            nn.Conv2d(ndf * 12, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
@@ -301,7 +297,7 @@ class mod_cDCGAN():
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                label = flip_labels(label, 0.1, self.dtype)
+                #label = flip_labels(label, 0.1, self.dtype)
                 label = smooth_labels(label, device=self.device, type=self.dtype)
 
 
@@ -317,7 +313,7 @@ class mod_cDCGAN():
                                     device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
-                label = flip_labels(label, 0.1, self.dtype)
+                #label = flip_labels(label, 0.1, self.dtype)
                 label = smooth_labels(label, device=self.device, type=self.dtype)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
