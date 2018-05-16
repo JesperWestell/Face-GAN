@@ -153,7 +153,6 @@ class Discriminator(nn.Module):
             Unsqueeze(),
             # input is 40 x 1 x 1
             nn.ConvTranspose2d(40, ndf * 4, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.1, inplace=True)
             # state size. (ndf*4) x 4 x 4
         )
