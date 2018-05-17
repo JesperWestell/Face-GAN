@@ -14,6 +14,8 @@ from dataset import CelebADataset
 from utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels,flip_labels
 
 out_folder = './mod_cdcgan_out/'
+db_folder = './mod_cdcgan_database/'
+
 try:
     os.makedirs(out_folder)
 except OSError:
@@ -391,20 +393,35 @@ class mod_cDCGAN():
                           '%s/samples.png' % out_folder,
                           normalize=True)
 
-    def load_and_sample(self, checkpoint=None, save_path=out_folder + 'test'):
+    def load(self, checkpoint=None):
         if checkpoint != None:
             try:
                 self.load_checkpoint(checkpoint)
             except:
                 print(' [*] No checkpoint!')
                 self.current_epoch = 0
+
+    def load_and_sample(self, checkpoint=None, save_path=out_folder+'test'):
+        self.load(checkpoint)
         fake = self.netG(self.fixed_noise[:64], self.fixed_attributes[:64])
-        vutils.save_image(fake, save_path + '_sample.png',
+        vutils.save_image(fake,save_path+'_sample.png',
                           normalize=True)
         fake = self.netG(self.gradient_noise[:64],
                          self.gradient_attributes[:64])
-        vutils.save_image(fake, save_path + '_gradient.png',
+        vutils.save_image(fake,save_path+'_gradient.png',
                           normalize=True)
+
+    def build_sample_dataset(self, batches=10):
+        # Samples from the generator and builds a dataset from the samples, storing it in a folder
+        batch_size = 64
+        for b in range(batches):
+            noise = torch.randn(batch_size, self.nz, 1, 1, device=self.device).type(self.dtype)
+            attributes = self.G_attribute_generator.sample(batch_size).type(self.dtype)
+            fake = self.netG(noise, attributes)
+            for i in range(batch_size):
+                f = fake[i,:,:,:]
+                vutils.save_image(f, db_folder + 'sample_%d.png'% (i+b*batch_size),
+                                  normalize=True)
 
     def load_checkpoint(self, checkpoint_path):
         state = torch.load(checkpoint_path)
@@ -425,7 +442,10 @@ class mod_cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
-mod_cdcgan.train(25)
+mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
+mod_cdcgan.load(checkpoint='./mod_cdcgan_out/mod_cdcgan_epoch_24.pth')
+mod_cdcgan.build_sample_dataset(batches=1)
+
+#mod_cdcgan.train(25)
 
 print('done')

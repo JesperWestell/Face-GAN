@@ -356,13 +356,16 @@ class cDCGAN():
                           '%s/samples.png' % out_folder,
                           normalize=True)
 
-    def load_and_sample(self, checkpoint=None, save_path=out_folder+'test'):
+    def load(self, checkpoint=None):
         if checkpoint != None:
             try:
                 self.load_checkpoint(checkpoint)
             except:
                 print(' [*] No checkpoint!')
                 self.current_epoch = 0
+
+    def load_and_sample(self, checkpoint=None, save_path=out_folder+'test'):
+        self.load(checkpoint)
         fake = self.netG(self.fixed_noise[:64], self.fixed_attributes[:64])
         vutils.save_image(fake,save_path+'_sample.png',
                           normalize=True)
