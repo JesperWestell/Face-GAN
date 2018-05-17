@@ -39,7 +39,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     # Load inception model
     inception_model = inception_v3(pretrained=True, transform_input=False).type(dtype)
     inception_model.eval();
-    up = nn.Upsample(size=(299, 299), mode='bilinear').type(dtype)
+    up = nn.Upsample(size=(299, 299), mode='bilinear', align_corners=True).type(dtype)
     def get_pred(x):
         if resize:
             x = up(x)
@@ -50,6 +50,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     preds = np.zeros((N, 1000))
 
     for i, batch in enumerate(dataloader, 0):
+        print(i)
         batch = batch.type(dtype)
         batchv = Variable(batch)
         batch_size_i = batch.size()[0]
@@ -58,6 +59,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
 
     # Now compute the mean kl-div
     split_scores = []
+    print('test1')
 
     for k in range(splits):
         part = preds[k * (N // splits): (k+1) * (N // splits), :]
@@ -96,4 +98,4 @@ if __name__ == '__main__':
     IgnoreLabelDataset(cifar)
 
     print ("Calculating Inception Score...")
-    print (inception_score(IgnoreLabelDataset(cifar), cuda=False, batch_size=32, resize=True, splits=10))
+    print (inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=64, resize=True, splits=10))
