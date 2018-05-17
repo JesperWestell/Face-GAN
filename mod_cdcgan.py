@@ -20,6 +20,10 @@ try:
     os.makedirs(out_folder)
 except OSError:
     pass
+try:
+    os.makedirs(db_folder)
+except OSError:
+    pass
 
 def weights_init(m):
     # custom weights initialization called on netG and netD

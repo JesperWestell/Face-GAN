@@ -14,8 +14,14 @@ from dataset import CelebADataset
 from utils import PrintLayer, AttributeGenerator, generate_fixed
 
 out_folder = './cdcgan_out/'
+db_folder = './cdcgan_database/'
+
 try:
     os.makedirs(out_folder)
+except OSError:
+    pass
+try:
+    os.makedirs(db_folder)
 except OSError:
     pass
 
@@ -206,6 +212,10 @@ class cDCGAN():
             print(
                 "WARNING: You have a CUDA device, so you should probably run with --cuda")
 
+        if cuda:
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.FloatTensor
 
         self.dataset = CelebADataset(root=dataroot,
                         attr_file=attr_file,
@@ -374,7 +384,17 @@ class cDCGAN():
         vutils.save_image(fake,save_path+'_gradient.png',
                           normalize=True)
 
-
+    def build_sample_dataset(self, batches=10):
+        # Samples from the generator and builds a dataset from the samples, storing it in a folder
+        batch_size = 64
+        for b in range(batches):
+            noise = torch.randn(batch_size, self.nz, 1, 1, device=self.device).type(self.dtype)
+            attributes = self.G_attribute_generator.sample(batch_size).type(self.dtype)
+            fake = self.netG(noise, attributes)
+            for i in range(batch_size):
+                f = fake[i,:,:,:]
+                vutils.save_image(f, db_folder + 'sample_%d.png'% (i+b*batch_size),
+                                  normalize=True)
 
     def load_checkpoint(self, checkpoint_path):
         state = torch.load(checkpoint_path)
@@ -394,8 +414,10 @@ class cDCGAN():
         torch.save(state, checkpoint_path)
         print('model saved to %s' % checkpoint_path)
 
-cdcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', lr=4e-5)
+cdcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
+cdcgan.load(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
+cdcgan.build_sample_dataset(batches=3)
 #dcgan.train(25, checkpoint='./cdcgan_out/cdcgan_epoch_15.pth')
-cdcgan.load_and_sample(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
+#cdcgan.load_and_sample(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
 
 print('done')
