@@ -285,7 +285,7 @@ class mod_cDCGAN():
         real_label = 1
         fake_label = 0
 
-        smooth_strength = 0.1
+        smooth_strength = 0.05
 
         for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
@@ -442,10 +442,10 @@ class mod_cDCGAN():
         print('model saved to %s' % checkpoint_path)
 
 
-mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
+mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
 mod_cdcgan.load(checkpoint='./mod_cdcgan_out/mod_cdcgan_epoch_24.pth')
 mod_cdcgan.build_sample_dataset(batches=1)
-
 #mod_cdcgan.train(25)
+#mod_cdcgan.load_and_sample(checkpoint='./mod_cdcgan_out/mod_cdcgan_epoch_23.pth')
 
 print('done')
