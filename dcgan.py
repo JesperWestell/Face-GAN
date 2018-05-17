@@ -15,8 +15,13 @@ from tensorboardX import SummaryWriter
 from dataset import CelebADataset
 
 out_folder = './dcgan_out/'
+db_folder = './dcgan_database/'
 try:
     os.makedirs(out_folder)
+except OSError:
+    pass
+try:
+    os.makedirs(db_folder)
 except OSError:
     pass
 
@@ -127,6 +132,10 @@ class DCGAN():
             print(
                 "WARNING: You have a CUDA device, so you should probably run with --cuda")
 
+        if cuda:
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.FloatTensor
 
         self.dataset = CelebADataset(root=dataroot,
                         attr_file=attr_file,
@@ -253,6 +262,31 @@ class DCGAN():
                           '%s/samples.png' % out_folder,
                           normalize=True)
 
+    def load(self, checkpoint=None):
+        if checkpoint != None:
+            try:
+                self.load_checkpoint(checkpoint)
+            except:
+                print(' [*] No checkpoint!')
+                self.current_epoch = 0
+
+    def load_and_sample(self, checkpoint=None, save_path=out_folder+'test'):
+        self.load(checkpoint)
+        fake = self.netG(self.fixed_noise[:64])
+        vutils.save_image(fake,save_path+'_sample.png',
+                          normalize=True)
+
+    def build_sample_dataset(self, batches=10):
+        # Samples from the generator and builds a dataset from the samples, storing it in a folder
+        batch_size = 64
+        for b in range(batches):
+            noise = torch.randn(batch_size, self.nz, 1, 1, device=self.device).type(self.dtype)
+            fake = self.netG(noise)
+            for i in range(batch_size):
+                f = fake[i,:,:,:]
+                vutils.save_image(f, db_folder + 'sample_%d.png'% (i+b*batch_size),
+                                  normalize=True)
+
     def load_checkpoint(self, checkpoint_path):
         state = torch.load(checkpoint_path)
         self.current_epoch = state['epoch']
@@ -271,8 +305,9 @@ class DCGAN():
         torch.save(state, checkpoint_path)
         print('model saved to %s' % checkpoint_path)
 
-
-dcgan = DCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt')
+dcgan = DCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
+#cdcgan.load(checkpoint='./dcgan_out/dcgan_epoch_24.pth')
+#cdcgan.build_sample_dataset(batches=3)
 dcgan.train(25)
 
 print('done')
