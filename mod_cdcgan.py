@@ -283,7 +283,7 @@ class mod_cDCGAN():
         real_label = 1
         fake_label = 0
 
-        smooth_strength = 0.1
+        smooth_strength = 0.05
 
         for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
