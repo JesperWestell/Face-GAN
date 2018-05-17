@@ -414,9 +414,9 @@ class cDCGAN():
         torch.save(state, checkpoint_path)
         print('model saved to %s' % checkpoint_path)
 
-cdcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
-cdcgan.load(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
-cdcgan.build_sample_dataset(batches=3)
+#cdcgan = cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
+#cdcgan.load(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
+#cdcgan.build_sample_dataset(batches=3)
 #dcgan.train(25, checkpoint='./cdcgan_out/cdcgan_epoch_15.pth')
 #cdcgan.load_and_sample(checkpoint='./cdcgan_out/cdcgan_epoch_24.pth')
 
