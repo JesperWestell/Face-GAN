@@ -424,7 +424,7 @@ class mod_cDCGAN():
             fake = self.netG(noise, attributes)
             for i in range(batch_size):
                 f = fake[i,:,:,:]
-                vutils.save_image(f, db_folder + 'sample_%d.png'% (i+b*batch_size),
+                vutils.save_image(f, db_folder + '/imgs/sample_%d.png'% (i+b*batch_size),
                                   normalize=True)
 
     def load_checkpoint(self, checkpoint_path):
