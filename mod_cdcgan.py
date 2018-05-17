@@ -426,6 +426,7 @@ class mod_cDCGAN():
 
 
 mod_cdcgan = mod_cDCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
-mod_cdcgan.train(25)
+#mod_cdcgan.train(25)
+#mod_cdcgan.load_and_sample(checkpoint='./mod_cdcgan_out/mod_cdcgan_epoch_23.pth')
 
 print('done')
