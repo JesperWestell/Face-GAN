@@ -1,6 +1,5 @@
 # https://github.com/sbarratt/inception-score-pytorch
 
-
 import torch
 from torch import nn
 from torch.autograd import Variable

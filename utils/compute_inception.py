@@ -1,4 +1,4 @@
-from inception_score import inception_score, IgnoreLabelDataset
+from utils.inception_score import inception_score, IgnoreLabelDataset
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 
