@@ -14,7 +14,7 @@ from utils.dataset import CelebADataset
 from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels,flip_labels
 
 out_folder = './outputs/mod_cdcgan_out/'
-db_folder = './mod_cdcgan_database/imgs/'
+db_folder = './databases/mod_cdcgan/imgs/'
 
 try:
     os.makedirs(out_folder)
@@ -34,7 +34,6 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
-
 class YModule(nn.Module):
     # Simple wrapper for network with two inputs and one output,
     # hence a Y network
@@ -46,12 +45,10 @@ class YModule(nn.Module):
 
     def forward(self, input):
         input1, input2 = input
-        # print(input2.unique())
         out1 = self.in1(input1)  # Noise/image
         out2 = self.in2(input2)  # Attributes
         output = self.out(torch.cat([out1, out2], 1))
         return output
-
 
 class Expand(nn.Module):
     # Expands a tensor, from c, 1, 1 to c, d, d
@@ -89,7 +86,7 @@ class Generator(nn.Module):
             # input is attributes
             # state size. 40
             Unsqueeze(),
-            # state size. (40) x 1 x 1
+            # state size. 40 x 1 x 1
             nn.ConvTranspose2d(40, ngf*4, 2, 1, 0, bias=False),
             nn.BatchNorm2d(ngf*4),
             nn.LeakyReLU(0.1, inplace=True)
