@@ -2,3 +2,5 @@
 data/*
 # All saved params
 *.pth
+# Temporary python files
+*.pyc
