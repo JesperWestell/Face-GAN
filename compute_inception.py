@@ -3,7 +3,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 
 
-root='dcgan_database'
+root='databases/mod2_cdcgan'
 db = dset.ImageFolder(root=root,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
