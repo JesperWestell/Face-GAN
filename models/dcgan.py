@@ -304,10 +304,3 @@ class DCGAN():
                  'optimizerG': self.optimizerG.state_dict()}
         torch.save(state, checkpoint_path)
         print('model saved to %s' % checkpoint_path)
-
-dcgan = DCGAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=False)
-#cdcgan.load(checkpoint='./dcgan_out/dcgan_epoch_24.pth')
-#cdcgan.build_sample_dataset(batches=3)
-dcgan.train(25)
-
-print('done')
