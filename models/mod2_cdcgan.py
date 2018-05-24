@@ -206,6 +206,7 @@ class mod2_cDCGAN():
                  random_seed=None):
         self.nz = nz
         self.current_epoch = 0
+        self.step = 0
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -288,6 +289,7 @@ class mod2_cDCGAN():
             except:
                 print(' [*] No checkpoint!')
                 self.current_epoch = 0
+                self.step = 0
 
         writer = SummaryWriter('./summaries/mod2_cdcgan')
 
@@ -345,20 +347,20 @@ class mod2_cDCGAN():
                     % (epoch, niter, i, len(self.dataloader),
 
                        errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-                step = epoch * int(len(self.dataset) / batch_size) + 1 + i
 
                 writer.add_scalars('D/loss',
                                    {'D loss': errD.item()},
-                                   global_step=step)
+                                   global_step=self.step)
                 writer.add_scalars('D/D(x)',
                                    {'D(x)': D_x},
-                                   global_step=step)
+                                   global_step=self.step)
                 writer.add_scalars('G/loss',
                                    {'G loss': errG.item()},
-                                   global_step=step)
+                                   global_step=self.step)
                 writer.add_scalars('D/D(G(z))',
                                    {'D_G_z1': D_G_z1, 'D_G_z2': D_G_z2},
-                                   global_step=step)
+                                   global_step=self.step)
+                self.step += 1
                 if i % 100 == 0:
                     vutils.save_image(real_cpu[:64],
                                       '%s/real_samples.png' % out_folder,
@@ -423,6 +425,7 @@ class mod2_cDCGAN():
     def load_checkpoint(self, checkpoint_path):
         state = torch.load(checkpoint_path)
         self.current_epoch = state['epoch'] + 1  # Start on next epoch
+        self.step = state['step']
         self.netD.load_state_dict(state['netD'])
         self.netG.load_state_dict(state['netG'])
         self.optimizerD.load_state_dict(state['optimizerD'])
@@ -431,6 +434,7 @@ class mod2_cDCGAN():
 
     def save_checkpoint(self, checkpoint_path):
         state = {'epoch': self.current_epoch,
+                 'step': self.step,
                  'netD': self.netD.state_dict(),
                  'netG': self.netG.state_dict(),
                  'optimizerD': self.optimizerD.state_dict(),
