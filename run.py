@@ -1,6 +1,10 @@
-from mod_cdcgan import mod_cDCGAN
-from cdcgan import cDCGAN
-from dcgan import DCGAN
+import sys
+print(sys.path)
+
+from models.mod_cdcgan import mod_cDCGAN
+from models.cdcgan import cDCGAN
+from models.dcgan import DCGAN
+
 
 image_folder = '../data/resized_celebA/'
 attribute_folder = '../data/Anno/list_attr_celeba.txt'

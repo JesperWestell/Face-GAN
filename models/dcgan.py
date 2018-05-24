@@ -12,7 +12,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
-from dataset import CelebADataset
+from utils.dataset import CelebADataset
 
 out_folder = './outputs/dcgan_out/'
 db_folder = './dcgan_database/imgs/'

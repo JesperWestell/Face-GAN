@@ -3,6 +3,9 @@ import numpy as np
 from PIL import Image
 import os
 import os.path
+import sys
+print(sys.path)
+sys.path.append('~/Project/Face-GAN')
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif']
 

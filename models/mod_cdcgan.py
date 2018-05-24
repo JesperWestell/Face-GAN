@@ -10,8 +10,8 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
-from dataset import CelebADataset
-from utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels,flip_labels
+from utils.dataset import CelebADataset
+from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels,flip_labels
 
 out_folder = './outputs/mod_cdcgan_out/'
 db_folder = './mod_cdcgan_database/imgs/'
