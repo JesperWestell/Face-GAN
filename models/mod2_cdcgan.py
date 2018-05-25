@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from utils.dataset import CelebADataset
-from utils.utils import PrintLayer, AttributeGenerator, generate_fixed
+from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels
 
 out_folder = './outputs/mod2_cdcgan_out/'
 db_folder = './databases/mod2_cdcgan/imgs/'
@@ -296,6 +296,8 @@ class mod2_cDCGAN():
         real_label = 1
         fake_label = 0
 
+        smooth_strength = 0.05
+
         for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
                 ############################
@@ -309,6 +311,8 @@ class mod2_cDCGAN():
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
 
                 # output = self.netD(real_cpu, self.D_attribute_generator.add_noise(real_attr).to(self.device))
                 output = self.netD(real_cpu, real_attr)
@@ -323,6 +327,8 @@ class mod2_cDCGAN():
                                     device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
                 errD_fake.backward()
@@ -336,6 +342,8 @@ class mod2_cDCGAN():
                 self.netG.zero_grad()
                 label.fill_(
                     real_label)  # fake labels are real for generator cost
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 output = self.netD(fake, fake_attr)
                 errG = self.criterion(output, label)
                 errG.backward()
