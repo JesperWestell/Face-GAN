@@ -92,16 +92,16 @@ class Generator(nn.Module):
             # state size. 40
             Unsqueeze(),
             # state size. 40 x 1 x 1
-            nn.ConvTranspose2d(40, ngf * 2, 2, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 2),
+            nn.ConvTranspose2d(40, ngf * 1, 2, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 1),
             nn.ReLU(True)
-            # state size. (ngf*2) x 2 x 2
+            # state size. (ngf*1) x 2 x 2
         )
         output_layer = nn.Sequential(
             # input is noise_layer(z) + attribute_layer(t),
             # going into a convolution
-            # state size. (ngf*8 + ngf*2) x 2 x 2
-            nn.ConvTranspose2d(ngf * 8 + ngf * 2, ngf * 8, 3, 1, 0, bias=False),
+            # state size. (ngf*8 + ngf*1) x 2 x 2
+            nn.ConvTranspose2d(ngf * 8 + ngf * 1, ngf * 8, 3, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -160,15 +160,15 @@ class Discriminator(nn.Module):
             # state size. 40
             Unsqueeze(),
             # input is 40 x 1 x 1
-            nn.ConvTranspose2d(40, ndf * 2, 4, 1, 0, bias=True),
+            nn.ConvTranspose2d(40, ndf * 1, 4, 1, 0, bias=True),
             nn.LeakyReLU(0.1, inplace=True)
-            # state size. (ndf*2) x 4 x 4
+            # state size. (ndf*1) x 4 x 4
         )
 
         output_layer = nn.Sequential(
             # input is image_layer(z) + attribute_layer(t)
-            # state size. (ndf*8 + ndf*2) x 4 x 4
-            nn.Conv2d(ndf * 8 + ndf * 2, ndf * 8, 1, 1, 0, bias=True),
+            # state size. (ndf*8 + ndf*1) x 4 x 4
+            nn.Conv2d(ndf * 8 + ndf * 1, ndf * 8, 1, 1, 0, bias=True),
             nn.LeakyReLU(0.1, inplace=True),
             # state size. (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
