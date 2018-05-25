@@ -4,3 +4,5 @@ data/*
 *.pth
 # Temporary python files
 *.pyc
+
+*.DS_Store
