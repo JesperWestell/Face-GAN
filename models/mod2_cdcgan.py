@@ -82,29 +82,25 @@ class Generator(nn.Module):
         noise_layer = nn.Sequential(
             # input is z, going into a convolution
             # state size. (nz) x 1 x 1
-            nn.ConvTranspose2d(nz, ngf * 8, 2, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 8),
+            nn.ConvTranspose2d(nz, ngf * 7, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 7),
             nn.ReLU(True)
-            # state size. (ngf*8) x 2 x 2
+            # state size. (ngf*7) x 4 x 4
         )
         attribute_layer = nn.Sequential(
             # input is t, going into a convolution
             # state size. 40
             Unsqueeze(),
             # state size. 40 x 1 x 1
-            nn.ConvTranspose2d(40, ngf * 1, 2, 1, 0, bias=False),
+            nn.ConvTranspose2d(40, ngf * 1, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 1),
             nn.ReLU(True)
-            # state size. (ngf*1) x 2 x 2
+            # state size. (ngf*1) x 4 x 4
         )
         output_layer = nn.Sequential(
             # input is noise_layer(z) + attribute_layer(t),
             # going into a convolution
-            # state size. (ngf*8 + ngf*1) x 2 x 2
-            nn.ConvTranspose2d(ngf * 8 + ngf * 1, ngf * 8, 3, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 8),
-            nn.ReLU(True),
-            # state size. (ngf*8) x 4 x 4
+            # state size. (ngf*7 + ngf*1) x 4 x 4
             nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
@@ -168,10 +164,10 @@ class Discriminator(nn.Module):
         output_layer = nn.Sequential(
             # input is image_layer(z) + attribute_layer(t)
             # state size. (ndf*8 + ndf*1) x 4 x 4
-            nn.Conv2d(ndf * 8 + ndf * 1, ndf * 8, 1, 1, 0, bias=True),
-            nn.LeakyReLU(0.1, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            ####### nn.Conv2d(ndf * 8 + ndf * 1, ndf * 8, 1, 1, 0, bias=True),
+            ####### nn.LeakyReLU(0.1, inplace=True),
+            ####### state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8 + ndf * 1, 1, 4, 1, 0, bias=True),
             nn.Sigmoid()
         )
 
@@ -306,15 +302,13 @@ class mod2_cDCGAN():
                 # train with real
                 self.netD.zero_grad()
                 real_cpu = data[0].to(self.device)
-                # real_attr = data[1]
                 real_attr = data[1].to(self.device)
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
 
-                # output = self.netD(real_cpu, self.D_attribute_generator.add_noise(real_attr).to(self.device))
                 output = self.netD(real_cpu, real_attr)
                 errD_real = self.criterion(output, label)
                 errD_real.backward()
@@ -327,8 +321,8 @@ class mod2_cDCGAN():
                                     device=self.device)
                 fake = self.netG(noise, fake_attr)
                 label.fill_(fake_label)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 output = self.netD(fake.detach(), fake_attr)
                 errD_fake = self.criterion(output, label)
                 errD_fake.backward()
@@ -342,8 +336,8 @@ class mod2_cDCGAN():
                 self.netG.zero_grad()
                 label.fill_(
                     real_label)  # fake labels are real for generator cost
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 output = self.netD(fake, fake_attr)
                 errG = self.criterion(output, label)
                 errG.backward()
