@@ -48,6 +48,10 @@ def generate_fixed(generator, all_attributes):
             full_lst.append(new)
     return torch.stack(full_lst, 0)
 
+def mismatch_attributes(attributes):
+    # Inverts the attributes
+    return -attributes
+
 def smooth_labels(labels, device, type, strength=0.2):
     # Labels needs to be in {0,1}
     N = labels.shape
