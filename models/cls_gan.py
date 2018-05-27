@@ -201,7 +201,6 @@ class CLS_GAN():
         self.nz = nz
         self.current_epoch = 0
         self.step = 0
-        self.batch_size = batch_size
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -299,11 +298,13 @@ class CLS_GAN():
                 # (1) Update D network: maximize log(D(x,y)) + log(1 - D(G(z,y),y))
                 ###########################
                 self.netD.zero_grad()
-                z = torch.randn(self.batch_size, self.nz, 1, 1, device=self.device)
-                real_attr = data[1].to(self.device)
-                fake_attr = mismatch_attributes(real_attr)
                 real_img = data[0].to(self.device)
+                real_attr = data[1].to(self.device)
+                batch_size = real_attr.size(0)
+                z = torch.randn(batch_size, self.nz, 1, 1,
+                                device=self.device)
                 fake_img = self.netG(z, real_attr)
+                fake_attr = mismatch_attributes(real_attr)
 
                 # train with real
                 label = torch.full((self.batch_size,), real_label,
