@@ -291,7 +291,7 @@ class CLS_GAN():
         real_label = 1
         fake_label = 0
 
-        smooth_strength = 0.05
+        smooth_strength = 0.01
 
         for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
@@ -308,6 +308,8 @@ class CLS_GAN():
                 # train with real
                 label = torch.full((self.batch_size,), real_label,
                                    device=self.device)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 rr_output = self.netD(real_img, real_attr)
                 errD_real_img_real_attr = self.criterion(rr_output, label)
                 errD_real_img_real_attr.backward()
@@ -315,6 +317,8 @@ class CLS_GAN():
 
                 # train with real images, fake attributes
                 label.fill_(fake_label)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 rf_output = self.netD(real_img, fake_attr)
                 errD_real_img_fake_attr = self.criterion(rf_output, label)
                 errD_real_img_fake_attr.backward()
@@ -322,6 +326,8 @@ class CLS_GAN():
 
                 # train with fake images, real attributes
                 label.fill_(fake_label)
+                label = smooth_labels(label, strength=smooth_strength,
+                                      device=self.device, type=self.dtype)
                 fr_output = self.netD(fake_img.detach(), real_attr)
                 errD_fake_img_real_attr = self.criterion(fr_output, label)
                 errD_fake_img_real_attr.backward(retain_graph=True)
