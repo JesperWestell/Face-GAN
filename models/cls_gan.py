@@ -317,27 +317,25 @@ class CLS_GAN():
                 D_x = rr_output.mean().item()
 
                 # train with real images, fake attributes
-                #label.fill_(fake_label)
+                label.fill_(fake_label)
                 #label = smooth_labels(label, strength=smooth_strength,
                 #                      device=self.device, type=self.dtype)
-                #rf_output = self.netD(real_img, fake_attr)
-                #errD_real_img_fake_attr = self.criterion(rf_output, label)
-                #errD_real_img_fake_attr.backward()
-                #D_G_z_rf = rf_output.mean().item()
-                D_G_z_rf = 0
+                rf_output = self.netD(real_img, fake_attr)
+                errD_real_img_fake_attr = 0.5*self.criterion(rf_output, label)
+                errD_real_img_fake_attr.backward()
+                D_G_z_rf = rf_output.mean().item()
 
                 # train with fake images, real attributes
                 label.fill_(fake_label)
                 #label = smooth_labels(label, strength=smooth_strength,
                 #                      device=self.device, type=self.dtype)
-                fr_output = self.netD(fake_img.detach(), real_attr)
-                errD_fake_img_real_attr = self.criterion(fr_output, label)
+                fr_output = self.netD(fake_img, real_attr)
+                errD_fake_img_real_attr = 0.5*self.criterion(fr_output, label)
                 errD_fake_img_real_attr.backward(retain_graph=True)
                 D_G_z_fr = fr_output.mean().item()
 
                 # Compute total loss for D and optimize
-                #errD = errD_real_img_real_attr + 0.5*(errD_fake_img_real_attr + errD_real_img_fake_attr)
-                errD = errD_real_img_real_attr + errD_fake_img_real_attr
+                errD = errD_real_img_real_attr + errD_fake_img_real_attr + errD_real_img_fake_attr
                 self.optimizerD.step()
 
                 ############################
