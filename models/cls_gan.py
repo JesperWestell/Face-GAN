@@ -307,7 +307,7 @@ class CLS_GAN():
                 fake_attr = mismatch_attributes(real_attr)
 
                 # train with real
-                label = torch.full((self.batch_size,), real_label,
+                label = torch.full((batch_size,), real_label,
                                    device=self.device)
                 label = smooth_labels(label, strength=smooth_strength,
                                       device=self.device, type=self.dtype)
