@@ -309,33 +309,35 @@ class CLS_GAN():
                 # train with real
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 rr_output = self.netD(real_img, real_attr)
                 errD_real_img_real_attr = self.criterion(rr_output, label)
                 errD_real_img_real_attr.backward()
                 D_x = rr_output.mean().item()
 
                 # train with real images, fake attributes
-                label.fill_(fake_label)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
-                rf_output = self.netD(real_img, fake_attr)
-                errD_real_img_fake_attr = self.criterion(rf_output, label)
-                errD_real_img_fake_attr.backward()
-                D_G_z_rf = rf_output.mean().item()
+                #label.fill_(fake_label)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
+                #rf_output = self.netD(real_img, fake_attr)
+                #errD_real_img_fake_attr = self.criterion(rf_output, label)
+                #errD_real_img_fake_attr.backward()
+                #D_G_z_rf = rf_output.mean().item()
+                D_G_z_rf = 0
 
                 # train with fake images, real attributes
                 label.fill_(fake_label)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 fr_output = self.netD(fake_img.detach(), real_attr)
                 errD_fake_img_real_attr = self.criterion(fr_output, label)
                 errD_fake_img_real_attr.backward(retain_graph=True)
                 D_G_z_fr = fr_output.mean().item()
 
                 # Compute total loss for D and optimize
-                errD = errD_real_img_real_attr + 0.5*(errD_fake_img_real_attr + errD_real_img_fake_attr)
+                #errD = errD_real_img_real_attr + 0.5*(errD_fake_img_real_attr + errD_real_img_fake_attr)
+                errD = errD_real_img_real_attr + errD_fake_img_real_attr
                 self.optimizerD.step()
 
                 ############################
