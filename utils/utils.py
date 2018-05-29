@@ -53,6 +53,9 @@ def mismatch_attributes(attributes):
     return -attributes
 
 def smooth_labels(labels, device, type, strength=0.2):
+    if strength == 0:
+        print('zero')
+        return labels
     # Labels needs to be in {0,1}
     N = labels.shape
     res = torch.zeros(N, device=device)
