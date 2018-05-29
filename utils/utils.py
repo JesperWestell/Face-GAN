@@ -56,8 +56,8 @@ def smooth_labels(labels, device, type, strength=0.2):
     # Labels needs to be in {0,1}
     N = labels.shape
     res = torch.zeros(N, device=device)
-    res += labels * (strength * torch.rand(N).type(type) + 1-strength)
-    res += (1-labels) * strength * torch.rand(N).type(type)
+    res += labels * (1 - strength * torch.rand(N).type(type))
+    #res += (1-labels) * strength * torch.rand(N).type(type)  # Comment for one-sided
     return res
 
 def flip_labels(labels, prob, type):
