@@ -343,10 +343,8 @@ class CLS_GAN():
                 ###########################
                 self.netG.zero_grad()
                 label.fill_(real_label)
-                print(label)
                 label = smooth_labels(label, strength=smooth_strength,
                                       device=self.device, type=self.dtype)
-                print(label)
                 errG = self.criterion(fr_output, label)
                 errG.backward()
                 self.optimizerG.step()
