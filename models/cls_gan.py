@@ -290,9 +290,12 @@ class CLS_GAN():
         real_label = 1
         fake_label = 0
 
-        smooth_strength = 0.01
+        initial_smooth_strength = 0.2
+        anneal_epoch = 20
 
         for epoch in range(self.current_epoch, niter):
+            smooth_strength = max(0, initial_smooth_strength*(
+                    1-1.0*epoch/anneal_epoch))
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize log(D(x,y)) + log(1 - D(G(z,y),y))
