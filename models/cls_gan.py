@@ -291,7 +291,7 @@ class CLS_GAN():
         fake_label = 0
 
         initial_smooth_strength = 0.2
-        initial_noise_strength = 0.3
+        initial_noise_strength = 0.2
         anneal_epoch = 20
 
         for epoch in range(self.current_epoch, niter):
@@ -303,22 +303,22 @@ class CLS_GAN():
                 ###########################
                 self.netD.zero_grad()
                 real_img = data[0].to(self.device)
-                #real_img = add_noise(real_img, initial_noise_strength,
-                #                     anneal_epoch, epoch, device=self.device)
+                real_img = add_noise(real_img, initial_noise_strength,
+                                     anneal_epoch, epoch, device=self.device)
                 real_attr = data[1].to(self.device)
                 batch_size = real_attr.size(0)
                 z = torch.randn(batch_size, self.nz, 1, 1,
                                 device=self.device)
                 fake_img = self.netG(z, real_attr)
-                #fake_img = add_noise(fake_img, initial_noise_strength,
-                #                     anneal_epoch, epoch, device=self.device)
+                fake_img = add_noise(fake_img, initial_noise_strength,
+                                     anneal_epoch, epoch, device=self.device)
                 fake_attr = mismatch_attributes(real_attr)
 
                 # train with real images, real attributes
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 rr_output = self.netD(real_img, real_attr)
                 errD_real_img_real_attr = self.criterion(rr_output, label)
                 errD_real_img_real_attr.backward()
@@ -326,8 +326,8 @@ class CLS_GAN():
 
                 # train with real images, fake attributes
                 label.fill_(fake_label)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 rf_output = self.netD(real_img, fake_attr)
                 errD_real_img_fake_attr = 0.5*self.criterion(rf_output, label)
                 errD_real_img_fake_attr.backward()
@@ -335,8 +335,8 @@ class CLS_GAN():
 
                 # train with fake images, real attributes
                 label.fill_(fake_label)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 fr_output = self.netD(fake_img, real_attr)
                 errD_fake_img_real_attr = 0.5*self.criterion(fr_output, label)
                 errD_fake_img_real_attr.backward(retain_graph=True)
@@ -351,8 +351,8 @@ class CLS_GAN():
                 ###########################
                 self.netG.zero_grad()
                 label.fill_(real_label)
-                label = smooth_labels(label, strength=smooth_strength,
-                                      device=self.device, type=self.dtype)
+                #label = smooth_labels(label, strength=smooth_strength,
+                #                      device=self.device, type=self.dtype)
                 errG = self.criterion(fr_output, label)
                 errG.backward()
                 self.optimizerG.step()

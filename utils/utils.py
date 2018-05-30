@@ -63,6 +63,8 @@ def smooth_labels(labels, device, type, strength=0.2):
     return res
 
 def add_noise(imgs, start_strength, end_epoch, current_epoch, device=None):
+    if current_epoch >= end_epoch:
+        return imgs
     if device is not None:
         return imgs + max(0, start_strength - start_strength * current_epoch / (
             end_epoch)) * torch.randn(size=imgs.shape, device=device)
