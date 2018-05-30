@@ -4,6 +4,7 @@ from models.dcgan import DCGAN
 from models.mod2_cdcgan import mod2_cDCGAN
 from models.mod3_cdcgan import mod3_cDCGAN
 from models.cls_gan import CLS_GAN
+from models.ac_gan import AC_GAN
 
 
 image_folder = '../data/resized_celebA/'
