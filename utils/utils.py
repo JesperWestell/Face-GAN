@@ -41,7 +41,7 @@ def generate_fixed(generator, all_attributes):
 
 def mismatch_attributes(attributes, mismatch_prob = 0.25):
     # Inverts the attributes with a probability of mismatch_prob
-    idx = torch.ones(attributes.shape)
+    idx = torch.ones(attributes.shape).type(attributes.type())
     idx[torch.rand(attributes.shape) < mismatch_prob] = -1
     return attributes*idx
 
