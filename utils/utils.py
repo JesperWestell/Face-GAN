@@ -62,6 +62,14 @@ def smooth_labels(labels, device, type, strength=0.2):
     #res += (1-labels) * strength * torch.rand(N).type(type)  # Comment for one-sided
     return res
 
+def add_noise(imgs, start_strength, end_epoch, current_epoch, device=None):
+    if device is not None:
+        return imgs + max(0, start_strength - start_strength * current_epoch / (
+            end_epoch)) * torch.randn(size=imgs.shape, device=device)
+    return imgs + max(0,start_strength - start_strength * current_epoch / (
+        end_epoch)) * torch.randn(size=imgs.shape)
+
+
 def flip_labels(labels, prob, type):
     labels += (1-2*labels)*torch.bernoulli(torch.full(labels.shape, prob)).type(type)
     return labels
