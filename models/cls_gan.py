@@ -257,22 +257,20 @@ class CLS_GAN():
                                      betas=(0.5, 0.999))
         self.optimizerG = optim.Adam(self.netG.parameters(), lr=lr,
                                      betas=(0.5, 0.999))
-        self.G_attribute_generator = \
-            AttributeGenerator(self.dataset.get_attributes(), 0.25)
-        self.D_attribute_generator = \
-            AttributeGenerator(self.dataset.get_attributes(), 0.10)
+        self.attribute_generator = \
+            AttributeGenerator(self.dataset.get_attributes())
 
         # Used when plotting arbitrary faces
         self.fixed_noise = torch.randn(batch_size, nz, 1, 1,
                                        device=self.device).type(self.dtype)
-        self.fixed_attributes = self.G_attribute_generator.sample(
+        self.fixed_attributes = self.attribute_generator.sample(
             batch_size).type(self.dtype)
         # Used when plotting conditional faces
         self.gradient_noise = torch.randn(8, nz, 1, 1, device=self.device).type(
             self.dtype)
         self.gradient_noise = self.gradient_noise.repeat(1, 8, 1, 1).view(
             (8, 8, nz, 1, 1)).view(8 * 8, nz, 1, 1)
-        self.gradient_attributes = generate_fixed(self.D_attribute_generator,
+        self.gradient_attributes = generate_fixed(self.attribute_generator,
                                                   self.dataset.get_attribute_names()).type(
             self.dtype)
 
@@ -429,7 +427,7 @@ class CLS_GAN():
         for b in range(batches):
             noise = torch.randn(batch_size, self.nz, 1, 1,
                                 device=self.device).type(self.dtype)
-            attributes = self.G_attribute_generator.sample(batch_size).type(
+            attributes = self.attribute_generator.sample(batch_size).type(
                 self.dtype)
             fake = self.netG(noise, attributes)
             for i in range(batch_size):

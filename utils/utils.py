@@ -13,25 +13,12 @@ class PrintLayer(nn.Module):
         return input
 
 class AttributeGenerator():
-    # Generates attributes given a binomial distribution from data
-    # Assumes all attributes are independent, which is most probably not
-    # completely true
     def __init__(self, attributes, eps=0.25):
-        self.probs = torch.from_numpy((np.mean((attributes+1)/2, axis=0)))
-        self.binomial = torch.distributions.Binomial(probs=self.probs)
-        self.noise = torch.distributions.normal.Normal(
-            torch.zeros(attributes.shape[1]),
-            torch.full((attributes.shape[1],), eps)
-        )
+        self.attributes = attributes
 
     def sample(self, num_samples):
-        bin_samples = 2*self.binomial.sample((num_samples,))-1
-        #return self.add_noise(bin_samples)
-        return bin_samples.float()
-
-    def add_noise(self, attributes):
-        noise = self.noise.sample((attributes.shape[0],))
-        return attributes.float() + noise
+        idx = np.random.randint(0, len(self.attributes),num_samples)
+        return torch.Tensor(self.attributes[idx,:])
 
 ATTRIBUTES = ['Black_Hair', 'Blond_Hair', 'Eyeglasses', 'Male',
               'No_Beard', 'Smiling', 'Wearing_Hat', 'Young']
@@ -48,9 +35,11 @@ def generate_fixed(generator, all_attributes):
             full_lst.append(new)
     return torch.stack(full_lst, 0)
 
-def mismatch_attributes(attributes):
-    # Inverts the attributes
-    return -attributes
+def mismatch_attributes(attributes, mismatch_prob = 0.25):
+    # Inverts the attributes with a probability of mismatch_prob
+    idx = torch.ones(attributes.shape)
+    idx[torch.rand(attributes.shape) < mismatch_prob] = -1
+    return attributes*idx
 
 def smooth_labels(labels, device, type, strength=0.2):
     if strength == 0:
