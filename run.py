@@ -11,7 +11,7 @@ image_folder = '../data/resized_celebA/'
 attribute_folder = '../data/Anno/list_attr_celeba.txt'
 
 gan = CLS_GAN(image_folder, attribute_folder, cuda=True)
-gan.load(checkpoint='./outputs/cls_gan_out/cls_gan_epoch_24.pth')
+#gan.load(checkpoint='./outputs/cls_gan_out/cls_gan_epoch_24.pth')
 #gan.build_sample_dataset(batches=1)
 gan.train(30)
 #gan.load_and_sample(checkpoint='./outputs/mod_cdcgan_out/mod_cdcgan_epoch_23.pth')
