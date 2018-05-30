@@ -12,7 +12,7 @@ import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from utils.dataset import CelebADataset
 from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, \
-    smooth_labels, mismatch_attributes
+    smooth_labels, mismatch_attributes, add_noise
 
 out_folder = './outputs/cls_gan_out/'
 db_folder = './databases/mod_cls_gan/imgs/'
@@ -291,6 +291,7 @@ class CLS_GAN():
         fake_label = 0
 
         initial_smooth_strength = 0.2
+        initial_noise_strength = 0.3
         anneal_epoch = 20
 
         for epoch in range(self.current_epoch, niter):
@@ -302,11 +303,15 @@ class CLS_GAN():
                 ###########################
                 self.netD.zero_grad()
                 real_img = data[0].to(self.device)
+                #real_img = add_noise(real_img, initial_noise_strength,
+                #                     anneal_epoch, epoch, device=self.device)
                 real_attr = data[1].to(self.device)
                 batch_size = real_attr.size(0)
                 z = torch.randn(batch_size, self.nz, 1, 1,
                                 device=self.device)
                 fake_img = self.netG(z, real_attr)
+                #fake_img = add_noise(fake_img, initial_noise_strength,
+                #                     anneal_epoch, epoch, device=self.device)
                 fake_attr = mismatch_attributes(real_attr)
 
                 # train with real images, real attributes
