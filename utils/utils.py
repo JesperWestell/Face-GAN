@@ -20,15 +20,19 @@ class AttributeGenerator():
         idx = np.random.randint(0, len(self.attributes),num_samples)
         return torch.Tensor(self.attributes[idx,:])
 
+    def sample_fixed(self, fixed_idx):
+        attributes = self.attributes[self.attributes[:,fixed_idx] == 1,:]
+        idx = np.random.randint(0, len(attributes))
+        return torch.Tensor(attributes[idx, :])
+
 ATTRIBUTES = ['Black_Hair', 'Blond_Hair', 'Eyeglasses', 'Male',
               'No_Beard', 'Smiling', 'Wearing_Hat', 'Young']
 
 def generate_fixed(generator, all_attributes):
     full_lst = []
-    fixed_attributes = generator.sample(8)
     for i, attr in enumerate(ATTRIBUTES):
         idx = all_attributes.index(attr)
-        fixed = fixed_attributes[i]
+        fixed = generator.sample_fixed(idx)
         for x in [-1, -0.75, -0.5, -0.2, 0.2, 0.5, 0.75, 1]:
             new = fixed.clone()
             new[idx] = x
