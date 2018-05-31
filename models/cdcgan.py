@@ -13,8 +13,8 @@ from tensorboardX import SummaryWriter
 from utils.dataset import CelebADataset
 from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels
 
-out_folder = './outputs/mod2_cdcgan_out/'
-db_folder = './databases/mod2_cdcgan/imgs/'
+out_folder = './outputs/cdcgan_out/'
+db_folder = './databases/cdcgan/imgs/'
 
 try:
     os.makedirs(out_folder)
@@ -184,7 +184,7 @@ class Discriminator(nn.Module):
         return output.view(-1, 1).squeeze(1)
 
 
-class mod2_cDCGAN():
+class cDCGAN():
     def __init__(self,
                  dataroot,
                  attr_file,
@@ -285,7 +285,7 @@ class mod2_cDCGAN():
                 self.current_epoch = 0
                 self.step = 0
 
-        writer = SummaryWriter('./summaries/mod2_cdcgan')
+        writer = SummaryWriter('./summaries/cdcgan')
 
         real_label = 1
         fake_label = 0
@@ -380,7 +380,7 @@ class mod2_cDCGAN():
 
             # do checkpointing
             self.current_epoch = epoch
-            self.save_checkpoint('%s/mod2_cdcgan_epoch_%d.pth' % (out_folder, epoch))
+            self.save_checkpoint('%s/cdcgan_epoch_%d.pth' % (out_folder, epoch))
 
     def sample(self, num_samples):
         noise = torch.randn(num_samples, self.nz, 1, 1, device=self.device)

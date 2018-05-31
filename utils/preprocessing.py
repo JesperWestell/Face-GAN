@@ -42,7 +42,7 @@ def build_smaller_data_base():
     save_root = root + save
 
     try:
-        os.makedirs('.' + save + '/')
+        os.makedirs('.' + save)
     except OSError:
         pass
 
