@@ -310,7 +310,7 @@ class CLS_GAN():
                 fake_img = self.netG(z, real_attr)
                 fake_img = add_noise(fake_img, initial_noise_strength,
                                      anneal_epoch, epoch, device=self.device)
-                fake_attr = mismatch_attributes(real_attr)
+                fake_attr = mismatch_attributes(real_attr, 0.1)
 
                 # train with real images, real attributes
                 label = torch.full((batch_size,), real_label,
