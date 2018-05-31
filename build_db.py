@@ -7,6 +7,6 @@ from models.cls_gan import CLS_GAN
 
 gan = CLS_GAN('../data/resized_celebA/', '../data/Anno/list_attr_celeba.txt', cuda=True)
 gan.load(checkpoint='./outputs/cls_gan_out/cls_gan_epoch_29.pth')
-gan.build_sample_dataset(batches=100)
+gan.build_sample_dataset(batches=200)
 
 
