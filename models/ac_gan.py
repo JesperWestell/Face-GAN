@@ -319,7 +319,7 @@ class AC_GAN():
                 #real_img = add_noise(real_img, initial_noise_strength,
                 #                     anneal_epoch, epoch, device=self.device)
                 real_attr = data[1].to(self.device)
-                real_attr_sigmoid = 0.5*real_attr+1
+                real_attr_sigmoid = 0.5*real_attr+0.5
                 batch_size = real_attr.size(0)
                 z = torch.randn(batch_size, self.nz, 1, 1,
                                 device=self.device)
