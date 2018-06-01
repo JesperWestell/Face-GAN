@@ -394,14 +394,14 @@ class AC_GAN():
                     fake = self.netG(self.fixed_noise[:64],
                                      self.fixed_attributes[:64])
                     vutils.save_image(fake.detach(),
-                                      '%s/fake_samples_epoch_%03d.png' % (
-                                          out_folder, epoch),
+                                      '%s/fake_samples_epoch_%03d_weight%d.png' % (
+                                          out_folder, epoch, self.c_weight),
                                       normalize=True)
                     fake = self.netG(self.gradient_noise[:64],
                                      self.gradient_attributes[:64])
                     vutils.save_image(fake.detach(),
-                                      '%s/gradient_samples_epoch_%03d.png' % (
-                                          out_folder, epoch),
+                                      '%s/gradient_samples_epoch_%03d_weight%d.png' % (
+                                          out_folder, epoch, self.c_weight),
                                       normalize=True)
 
             # do checkpointing
