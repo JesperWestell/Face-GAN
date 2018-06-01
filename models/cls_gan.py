@@ -290,7 +290,7 @@ class CLS_GAN():
 
         initial_smooth_strength = 0.2
         initial_noise_strength = 0.2
-        anneal_epoch = 20
+        anneal_epoch = 10
 
         for epoch in range(self.current_epoch, niter):
             smooth_strength = max(0, initial_smooth_strength*(
