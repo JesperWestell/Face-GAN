@@ -209,10 +209,12 @@ class AC_GAN():
                  ngpu=1,
                  netG='',
                  netD='',
-                 random_seed=None):
+                 random_seed=None,
+                 c_weight=1):
         self.nz = nz
         self.current_epoch = 0
         self.step = 0
+        self.c_weight = c_weight
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -303,7 +305,6 @@ class AC_GAN():
         initial_smooth_strength = 0.1
         initial_noise_strength = 0.1
         anneal_epoch = 20
-        c_weight = 15
 
         for epoch in range(self.current_epoch, niter):
             smooth_strength = max(0, initial_smooth_strength*(
@@ -334,14 +335,14 @@ class AC_GAN():
                 #label = smooth_labels(label, strength=smooth_strength,
                 #                      device=self.device, type=self.dtype)
                 r_output_s, r_output_c = self.netD(real_img)
-                errD_real_img = 0.5*(self.criterion(r_output_s, label) + c_weight*self.criterion(r_output_c, real_attr_sigmoid))
+                errD_real_img = 0.5*(self.criterion(r_output_s, label) + self.c_weight*self.criterion(r_output_c, real_attr_sigmoid))
                 errD_real_img.backward()
                 D_x_s = r_output_s.mean().item()
                 D_x_c = r_output_c.mean().item()
 
                 # train with fake images
                 f_output_s, f_output_c = self.netD(fake_img)
-                errD_fake_img = 0.5*c_weight*self.criterion(f_output_c, real_attr_sigmoid)
+                errD_fake_img = 0.5*self.c_weight*self.criterion(f_output_c, real_attr_sigmoid)
                 label.fill_(fake_label)
                 #label = smooth_labels(label, strength=smooth_strength,
                 #                      device=self.device, type=self.dtype)
@@ -361,7 +362,7 @@ class AC_GAN():
                 label.fill_(real_label)
                 #label = smooth_labels(label, strength=smooth_strength,
                 #                      device=self.device, type=self.dtype)
-                errG = 0.5*(self.criterion(f_output_s, label) + c_weight*self.criterion(f_output_c, real_attr_sigmoid))
+                errG = 0.5*(self.criterion(f_output_s, label) + self.c_weight*self.criterion(f_output_c, real_attr_sigmoid))
                 errG.backward()
                 self.optimizerG.step()
 
