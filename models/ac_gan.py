@@ -205,17 +205,21 @@ class AC_GAN():
                  ngf=64,
                  ndf=64,
                  nc=3,
-                 na=40,
                  cuda=False,
                  ngpu=1,
                  netG='',
                  netD='',
                  random_seed=None,
-                 c_weight=1):
+                 c_weight=1,
+                 subset=False):
         self.nz = nz
         self.current_epoch = 0
         self.step = 0
         self.c_weight = c_weight
+        if subset:
+            na = 8
+        else:
+            na = 40
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -242,7 +246,8 @@ class AC_GAN():
                                                               (1, 1, 1)),
                                      ]),
                                      target_transform=transforms.Lambda(
-                                         lambda a: torch.from_numpy(a)))
+                                         lambda a: torch.from_numpy(a)),
+                                     subset=subset)
 
         self.dataloader = torch.utils.data.DataLoader(self.dataset,
                                                       batch_size=batch_size,

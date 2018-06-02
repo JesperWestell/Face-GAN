@@ -193,15 +193,19 @@ class CLS_GAN():
                  ngf=64,
                  ndf=64,
                  nc=3,
-                 na=40,
                  cuda=False,
                  ngpu=1,
                  netG='',
                  netD='',
-                 random_seed=None):
+                 random_seed=None,
+                 subset=False):
         self.nz = nz
         self.current_epoch = 0
         self.step = 0
+        if subset:
+            na = 8
+        else:
+            na=40
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -228,7 +232,8 @@ class CLS_GAN():
                                                               (1, 1, 1)),
                                      ]),
                                      target_transform=transforms.Lambda(
-                                         lambda a: torch.from_numpy(a)))
+                                         lambda a: torch.from_numpy(a)),
+                                     subset=subset)
 
         self.dataloader = torch.utils.data.DataLoader(self.dataset,
                                                       batch_size=batch_size,
@@ -289,9 +294,10 @@ class CLS_GAN():
         real_label = 1
         fake_label = 0
 
-        initial_smooth_strength = 0.2
-        initial_noise_strength = 0.2
-        anneal_epoch = 10
+        initial_smooth_strength = 0.1
+        initial_noise_strength = 0.1
+        anneal_epoch = 20
+        mismatch_prob = 0.2
 
         for epoch in range(self.current_epoch, niter):
             smooth_strength = max(0, initial_smooth_strength*(
@@ -311,7 +317,7 @@ class CLS_GAN():
                 fake_img = self.netG(z, real_attr)
                 fake_img = add_noise(fake_img, initial_noise_strength,
                                      anneal_epoch, epoch, device=self.device)
-                fake_attr = mismatch_attributes(real_attr, 0.1)
+                fake_attr = mismatch_attributes(real_attr, mismatch_prob)
 
                 # train with real images, real attributes
                 label = torch.full((batch_size,), real_label,

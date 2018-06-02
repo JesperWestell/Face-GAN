@@ -38,7 +38,7 @@ def make_dataset(dir, extensions):
 
     return images
 
-def load_attributes(filename):
+def load_attributes(filename, subset):
     # kyamagu/build_celeba_lmdb.py
     with open(filename, 'r') as f:
         num_images = int(f.readline().strip())
@@ -52,6 +52,22 @@ def load_attributes(filename):
                           dtype=np.float32, skiprows=2)
     assert files.size == data.shape[0]
     print("Finished loading {}".format(filename))
+    if subset:
+        print('Only taking subset of attributes!')
+        sub_attributes = ['Black_Hair', 'Blond_Hair', 'Eyeglasses', 'Male',
+                      'No_Beard', 'Smiling', 'Wearing_Hat', 'Young']
+        print("{} sub attributes".format(len(sub_attributes)))
+        print("{}".format(sub_attributes))
+        indices = np.zeros(len(sub_attributes), dtype=np.int32)
+        for i, attr in enumerate(sub_attributes):
+            idx = attributes.index(attr)
+            indices[i] = idx
+        print("indices: {}".format(indices))
+        print('whole data shape {}'.format(data.shape))
+        sub_data = data[:,indices]
+        print('sub data shape {}'.format(sub_data.shape))
+        data = sub_data
+        attributes = sub_attributes
     return attributes, data
 
 
@@ -67,10 +83,10 @@ class CelebADataset(data.Dataset):
     """
 
     def __init__(self, root, attr_file, transform=None, target_transform=None,
-                 extensions = IMG_EXTENSIONS, loader=default_loader):
+                 extensions = IMG_EXTENSIONS, loader=default_loader, subset=False):
         self.root = root
         self.attr_file = attr_file
-        self.attr_names, self.attr = load_attributes(attr_file)
+        self.attr_names, self.attr = load_attributes(attr_file, subset)
         self.imgs = make_dataset(root, extensions)
         self.loader = loader
         self.transform = transform
