@@ -77,7 +77,7 @@ class Unsqueeze(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, ngpu, nz, ngf, nc):
+    def __init__(self, ngpu, nz, ngf, nc, na):
         super(Generator, self).__init__()
         self.ngpu = ngpu
         noise_layer = nn.Sequential(
@@ -90,10 +90,10 @@ class Generator(nn.Module):
         )
         attribute_layer = nn.Sequential(
             # input is t, going into a convolution
-            # state size. 40
+            # state size. (na)
             Unsqueeze(),
-            # state size. 40 x 1 x 1
-            nn.ConvTranspose2d(40, ngf * 1, 4, 1, 0, bias=False),
+            # state size. (na) x 1 x 1
+            nn.ConvTranspose2d(na, ngf * 1, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 1),
             nn.ReLU(True)
             # state size. (ngf*1) x 4 x 4
@@ -131,7 +131,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, ngpu, ndf, nc):
+    def __init__(self, ngpu, ndf, nc, na):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
         image_layer = nn.Sequential(
@@ -154,10 +154,10 @@ class Discriminator(nn.Module):
         )
 
         attribute_layer = nn.Sequential(
-            # state size. 40
+            # state size. (na)
             Unsqueeze(),
-            # input is 40 x 1 x 1
-            nn.ConvTranspose2d(40, ndf * 1, 4, 1, 0, bias=True),
+            # input is (na) x 1 x 1
+            nn.ConvTranspose2d(na, ndf * 1, 4, 1, 0, bias=True),
             nn.LeakyReLU(0.1, inplace=True)
             # state size. (ndf*1) x 4 x 4
         )
@@ -193,6 +193,7 @@ class CLS_GAN():
                  ngf=64,
                  ndf=64,
                  nc=3,
+                 na=40,
                  cuda=False,
                  ngpu=1,
                  netG='',
@@ -236,14 +237,14 @@ class CLS_GAN():
 
         self.device = torch.device("cuda:0" if cuda else "cpu")
 
-        self.netG = Generator(ngpu, nz, ngf, nc).type(self.dtype).to(
+        self.netG = Generator(ngpu, nz, ngf, nc, na).type(self.dtype).to(
             self.device)
         self.netG.apply(weights_init)
         if netG != '':
             self.netG.load_state_dict(torch.load(netG))
         print(self.netG)
 
-        self.netD = Discriminator(ngpu, ndf, nc).type(self.dtype).to(
+        self.netD = Discriminator(ngpu, ndf, nc, na).type(self.dtype).to(
             self.device)
         self.netD.apply(weights_init)
         if netD != '':

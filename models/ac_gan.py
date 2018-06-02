@@ -149,6 +149,7 @@ class Discriminator(nn.Module):
     def __init__(self, ngpu, ndf, nc, na):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
+        self.na = na
         image_layer = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=True),
@@ -190,7 +191,7 @@ class Discriminator(nn.Module):
         else:
             output1, output2 = self.main(input)
 
-        return output1.view(-1, 1).squeeze(1), output2.view(-1, 40)
+        return output1.view(-1, 1).squeeze(1), output2.view(-1, self.na)
 
 
 class AC_GAN():
