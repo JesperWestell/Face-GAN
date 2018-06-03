@@ -308,13 +308,19 @@ class AC_GAN():
         real_label = 1
         fake_label = 0
 
-        initial_smooth_strength = 0.1
-        initial_noise_strength = 0.5
-        anneal_epoch = 10
+        initial_noise_strength = 0.1
+        noise_anneal_epoch = 20
+        initial_weight = 1
+        weight_anneal_epoch = 30
+        weight_start_epoch = 5
 
         for epoch in range(self.current_epoch, niter):
-            smooth_strength = max(0, initial_smooth_strength*(
-                    1-1.0*epoch/anneal_epoch))
+            img_weight = min(1,
+                                  max(initial_weight * 0.1,
+                                      initial_weight * (
+                                              1 - 0.9 * (
+                                                  epoch - weight_start_epoch + 1) / (
+                                                          weight_anneal_epoch - weight_start_epoch))))
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize 0.5( log(Ds(x))
@@ -325,7 +331,7 @@ class AC_GAN():
                 self.netD.zero_grad()
                 real_img = data[0].to(self.device)
                 real_img = add_noise(real_img, initial_noise_strength,
-                                     anneal_epoch, epoch, device=self.device)
+                                     noise_anneal_epoch, epoch, device=self.device)
                 real_attr = data[1].to(self.device)
                 real_attr_sigmoid = 0.5*real_attr+0.5
                 batch_size = real_attr.size(0)
@@ -333,26 +339,23 @@ class AC_GAN():
                                 device=self.device)
                 fake_img = self.netG(z, real_attr)
                 fake_img = add_noise(fake_img, initial_noise_strength,
-                                     anneal_epoch, epoch, device=self.device)
+                                     noise_anneal_epoch, epoch, device=self.device)
 
                 # train with real images
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                #label = smooth_labels(label, strength=smooth_strength,
-                #                      device=self.device, type=self.dtype)
                 r_output_s, r_output_c = self.netD(real_img)
-                errD_real_img = 0.5*(self.criterion(r_output_s, label) + self.c_weight*self.criterion(r_output_c, real_attr_sigmoid))
+                errD_real_img = img_weight*self.criterion(r_output_s, label) + \
+                                (1-img_weight)*self.criterion(r_output_c, real_attr_sigmoid)
                 errD_real_img.backward()
                 D_x_s = r_output_s.mean().item()
                 D_x_c = r_output_c.mean().item()
 
                 # train with fake images
                 f_output_s, f_output_c = self.netD(fake_img)
-                errD_fake_img = 0.5*self.c_weight*self.criterion(f_output_c, real_attr_sigmoid)
+                errD_fake_img = (1-img_weight)*self.criterion(f_output_c, real_attr_sigmoid)
                 label.fill_(fake_label)
-                #label = smooth_labels(label, strength=smooth_strength,
-                #                      device=self.device, type=self.dtype)
-                errD_fake_img += 0.5*self.criterion(f_output_s, label)
+                errD_fake_img += img_weight*self.criterion(f_output_s, label)
                 errD_fake_img.backward(retain_graph=True)
                 D_G_z_s = f_output_s.mean().item()
                 D_G_z_c = f_output_c.mean().item()
@@ -366,9 +369,8 @@ class AC_GAN():
                 ###########################
                 self.netG.zero_grad()
                 label.fill_(real_label)
-                #label = smooth_labels(label, strength=smooth_strength,
-                #                      device=self.device, type=self.dtype)
-                errG = 0.5*(self.criterion(f_output_s, label) + self.c_weight*self.criterion(f_output_c, real_attr_sigmoid))
+                errG = img_weight*self.criterion(f_output_s, label) + \
+                       (1-img_weight)*self.criterion(f_output_c, real_attr_sigmoid)
                 errG.backward()
                 self.optimizerG.step()
 
@@ -400,14 +402,14 @@ class AC_GAN():
                     fake = self.netG(self.fixed_noise[:64],
                                      self.fixed_attributes[:64])
                     vutils.save_image(fake.detach(),
-                                      '%s/fake_samples_epoch_%03d_weight%d.png' % (
-                                          out_folder, epoch, self.c_weight),
+                                      '%s/fake_samples_epoch_%03d.png' % (
+                                          out_folder, epoch),
                                       normalize=True)
                     fake = self.netG(self.gradient_noise[:64],
                                      self.gradient_attributes[:64])
                     vutils.save_image(fake.detach(),
-                                      '%s/gradient_samples_epoch_%03d_weight%d.png' % (
-                                          out_folder, epoch, self.c_weight),
+                                      '%s/gradient_samples_epoch_%03d.png' % (
+                                          out_folder, epoch),
                                       normalize=True)
 
             # do checkpointing
