@@ -309,8 +309,8 @@ class AC_GAN():
         fake_label = 0
 
         initial_smooth_strength = 0.1
-        initial_noise_strength = 0.1
-        anneal_epoch = 20
+        initial_noise_strength = 0.5
+        anneal_epoch = 10
 
         for epoch in range(self.current_epoch, niter):
             smooth_strength = max(0, initial_smooth_strength*(
