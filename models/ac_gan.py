@@ -309,18 +309,18 @@ class AC_GAN():
         fake_label = 0
 
         initial_noise_strength = 0.1
-        noise_anneal_epoch = 30
-        initial_weight = 1
-        weight_anneal_epoch = 30
-        weight_start_epoch = 5
+        noise_anneal_epoch = 20
+        initial_lr = 1
+        lr_anneal_epoch = 30
+        lr_start_epoch = 20
 
         for epoch in range(self.current_epoch, niter):
-            #img_weight = min(1,
-            #                      max(initial_weight * 0.1,
-            #                          initial_weight * (
-            #                                  1 - 0.9 * (
-            #                                      epoch - weight_start_epoch + 1) / (
-            #                                              weight_anneal_epoch - weight_start_epoch))))
+            lr_mult = min(1,
+                                  max(initial_lr * 0.01,
+                                      initial_lr * (
+                                              1 - 0.99 * (
+                                                  epoch - lr_start_epoch + 1) / (
+                                                          lr_anneal_epoch - lr_start_epoch))))
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize 0.5( log(Ds(x))
@@ -347,7 +347,8 @@ class AC_GAN():
                 r_output_s, r_output_c = self.netD(real_img)
                 errD_real_img = self.criterion(r_output_s, label) + \
                                 self.c_weight*self.criterion(r_output_c, real_attr_sigmoid)
-                errD_real_img.backward()
+                errD_real_img_back = lr_mult*errD_real_img
+                errD_real_img_back.backward()
                 D_x_s = r_output_s.mean().item()
                 D_x_c = r_output_c.mean().item()
 
@@ -356,7 +357,8 @@ class AC_GAN():
                 errD_fake_img = self.c_weight*self.criterion(f_output_c, real_attr_sigmoid)
                 label.fill_(fake_label)
                 errD_fake_img += self.criterion(f_output_s, label)
-                errD_fake_img.backward(retain_graph=True)
+                errD_fake_img_back = lr_mult*errD_fake_img
+                errD_fake_img_back.backward(retain_graph=True)
                 D_G_z_s = f_output_s.mean().item()
                 D_G_z_c = f_output_c.mean().item()
 
@@ -371,7 +373,8 @@ class AC_GAN():
                 label.fill_(real_label)
                 errG = self.criterion(f_output_s, label) + \
                        self.c_weight*self.criterion(f_output_c, real_attr_sigmoid)
-                errG.backward()
+                errG_back = lr_mult*errG
+                errG_back.backward()
                 self.optimizerG.step()
 
                 print(
@@ -402,14 +405,14 @@ class AC_GAN():
                     fake = self.netG(self.fixed_noise[:64],
                                      self.fixed_attributes[:64])
                     vutils.save_image(fake.detach(),
-                                      '%s/fake_samples_epoch_%03d.png' % (
-                                          out_folder, epoch),
+                                      '%s/fake_%d_epoch_%03d.png' % (
+                                          out_folder, self.c_weight, epoch),
                                       normalize=True)
                     fake = self.netG(self.gradient_noise[:64],
                                      self.gradient_attributes[:64])
                     vutils.save_image(fake.detach(),
-                                      '%s/gradient_samples_epoch_%03d.png' % (
-                                          out_folder, epoch),
+                                      '%s/gradient_%d_epoch_%03d.png' % (
+                                          out_folder, self.c_weight, epoch),
                                       normalize=True)
 
             # do checkpointing
