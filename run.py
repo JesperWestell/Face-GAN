@@ -8,7 +8,7 @@ from models.new_cls_gan import new_CLS_GAN
 image_folder = '../data/resized_celebA/'
 attribute_folder = '../data/Anno/list_attr_celeba.txt'
 
-gan = AC_GAN(image_folder, attribute_folder, cuda=True, subset=True)
+gan = AC_GAN(image_folder, attribute_folder, cuda=True, subset=True, c_weight=2)
 gan.train(30)
 
 #gan = CLS_GAN(image_folder, attribute_folder, cuda=True, subset=True)
