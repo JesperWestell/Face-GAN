@@ -14,7 +14,7 @@ from utils.dataset import CelebADataset
 from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, \
     smooth_labels, mismatch_attributes, add_noise
 
-out_folder = './outputs/ac_gan_out/'
+out_folder = './outputs/ac_gan_out_sub/'
 db_folder = './databases/ac_gan/imgs/'
 
 try:
