@@ -1,4 +1,4 @@
-# https://github.com/sbarratt/inception-score-pytorch
+# Credit: https://github.com/sbarratt/inception-score-pytorch
 
 import torch
 from torch import nn

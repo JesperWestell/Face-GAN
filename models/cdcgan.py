@@ -11,7 +11,8 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from utils.dataset import CelebADataset
-from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, smooth_labels
+from utils.utils import PrintLayer, AttributeGenerator, generate_fixed, \
+    smooth_labels, mismatch_attributes, add_noise
 
 out_folder = './outputs/cdcgan_out/'
 db_folder = './databases/cdcgan/imgs/'
@@ -76,7 +77,7 @@ class Unsqueeze(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, ngpu, nz, ngf, nc):
+    def __init__(self, ngpu, nz, ngf, nc, na):
         super(Generator, self).__init__()
         self.ngpu = ngpu
         noise_layer = nn.Sequential(
@@ -89,10 +90,10 @@ class Generator(nn.Module):
         )
         attribute_layer = nn.Sequential(
             # input is t, going into a convolution
-            # state size. 40
+            # state size. (na)
             Unsqueeze(),
-            # state size. 40 x 1 x 1
-            nn.ConvTranspose2d(40, ngf * 1, 4, 1, 0, bias=False),
+            # state size. (na) x 1 x 1
+            nn.ConvTranspose2d(na, ngf * 1, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 1),
             nn.ReLU(True)
             # state size. (ngf*1) x 4 x 4
@@ -130,7 +131,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, ngpu, ndf, nc):
+    def __init__(self, ngpu, ndf, nc, na):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
         image_layer = nn.Sequential(
@@ -153,10 +154,10 @@ class Discriminator(nn.Module):
         )
 
         attribute_layer = nn.Sequential(
-            # state size. 40
+            # state size. (na)
             Unsqueeze(),
-            # input is 40 x 1 x 1
-            nn.ConvTranspose2d(40, ndf * 1, 4, 1, 0, bias=True),
+            # input is (na) x 1 x 1
+            nn.ConvTranspose2d(na, ndf * 1, 4, 1, 0, bias=True),
             nn.LeakyReLU(0.1, inplace=True)
             # state size. (ndf*1) x 4 x 4
         )
@@ -164,9 +165,6 @@ class Discriminator(nn.Module):
         output_layer = nn.Sequential(
             # input is image_layer(z) + attribute_layer(t)
             # state size. (ndf*8 + ndf*1) x 4 x 4
-            ####### nn.Conv2d(ndf * 8 + ndf * 1, ndf * 8, 1, 1, 0, bias=True),
-            ####### nn.LeakyReLU(0.1, inplace=True),
-            ####### state size. (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8 + ndf * 1, 1, 4, 1, 0, bias=True),
             nn.Sigmoid()
         )
@@ -199,10 +197,15 @@ class cDCGAN():
                  ngpu=1,
                  netG='',
                  netD='',
-                 random_seed=None):
+                 random_seed=None,
+                 subset=False):
         self.nz = nz
         self.current_epoch = 0
         self.step = 0
+        if subset:
+            na = 8
+        else:
+            na=40
 
         if random_seed is None:
             random_seed = random.randint(1, 10000)
@@ -229,7 +232,8 @@ class cDCGAN():
                                                               (1, 1, 1)),
                                      ]),
                                      target_transform=transforms.Lambda(
-                                         lambda a: torch.from_numpy(a)))
+                                         lambda a: torch.from_numpy(a)),
+                                     subset=subset)
 
         self.dataloader = torch.utils.data.DataLoader(self.dataset,
                                                       batch_size=batch_size,
@@ -238,14 +242,14 @@ class cDCGAN():
 
         self.device = torch.device("cuda:0" if cuda else "cpu")
 
-        self.netG = Generator(ngpu, nz, ngf, nc).type(self.dtype).to(
+        self.netG = Generator(ngpu, nz, ngf, nc, na).type(self.dtype).to(
             self.device)
         self.netG.apply(weights_init)
         if netG != '':
             self.netG.load_state_dict(torch.load(netG))
         print(self.netG)
 
-        self.netD = Discriminator(ngpu, ndf, nc).type(self.dtype).to(
+        self.netD = Discriminator(ngpu, ndf, nc, na).type(self.dtype).to(
             self.device)
         self.netD.apply(weights_init)
         if netD != '':
@@ -290,63 +294,59 @@ class cDCGAN():
         real_label = 1
         fake_label = 0
 
-        smooth_strength = 0.05
+        initial_noise_strength = 0.1
+        anneal_epoch = 20
 
         for epoch in range(self.current_epoch, niter):
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize log(D(x,y)) + log(1 - D(G(z,y),y))
                 ###########################
-                # train with real
                 self.netD.zero_grad()
-                real_cpu = data[0].to(self.device)
+                real_img = data[0].to(self.device)
+                real_img = add_noise(real_img, initial_noise_strength,
+                                     anneal_epoch, epoch, device=self.device)
                 real_attr = data[1].to(self.device)
-                batch_size = real_cpu.size(0)
+                batch_size = real_attr.size(0)
+                z = torch.randn(batch_size, self.nz, 1, 1,
+                                device=self.device)
+                fake_img = self.netG(z, real_attr)
+                fake_img = add_noise(fake_img, initial_noise_strength,
+                                     anneal_epoch, epoch, device=self.device)
+
+                # train with real images, real attributes
                 label = torch.full((batch_size,), real_label,
                                    device=self.device)
-                #label = smooth_labels(label, strength=smooth_strength,
-                #                      device=self.device, type=self.dtype)
+                rr_output = self.netD(real_img, real_attr)
+                errD_real_img_real_attr = self.criterion(rr_output, label)
+                errD_real_img_real_attr.backward()
+                D_x = rr_output.mean().item()
 
-                output = self.netD(real_cpu, real_attr)
-                errD_real = self.criterion(output, label)
-                errD_real.backward()
-                D_x = output.mean().item()
-
-                # train with fake
-                fake_attr = self.attribute_generator.sample(batch_size).to(
-                    self.device)
-                noise = torch.randn(batch_size, self.nz, 1, 1,
-                                    device=self.device)
-                fake = self.netG(noise, fake_attr)
+                # train with fake images, real attributes
                 label.fill_(fake_label)
-                #label = smooth_labels(label, strength=smooth_strength,
-                #                      device=self.device, type=self.dtype)
-                output = self.netD(fake.detach(), fake_attr)
-                errD_fake = self.criterion(output, label)
-                errD_fake.backward()
-                D_G_z1 = output.mean().item()
-                errD = errD_real + errD_fake
+                fr_output = self.netD(fake_img, real_attr)
+                errD_fake_img_real_attr = 0.5 * self.criterion(fr_output, label)
+                errD_fake_img_real_attr.backward(retain_graph=True)
+                D_G_z_fr = fr_output.mean().item()
+
+                # Compute total loss for D and optimize
+                errD = errD_real_img_real_attr + errD_fake_img_real_attr
                 self.optimizerD.step()
 
                 ############################
-                # (2) Update G network: maximize log(D(G(z)))
+                # (2) Update G network: maximize log(D(G(z,y),y))
                 ###########################
                 self.netG.zero_grad()
-                label.fill_(
-                    real_label)  # fake labels are real for generator cost
-                #label = smooth_labels(label, strength=smooth_strength,
-                #                      device=self.device, type=self.dtype)
-                output = self.netD(fake, fake_attr)
-                errG = self.criterion(output, label)
+                label.fill_(real_label)
+                errG = self.criterion(fr_output, label)
                 errG.backward()
-                D_G_z2 = output.mean().item()
                 self.optimizerG.step()
 
                 print(
-                    '[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
+                    '[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x,y): %.4f D(x^,y) %.4f'
                     % (epoch, niter, i, len(self.dataloader),
 
-                       errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+                       errD.item(), errG.item(), D_x, D_G_z_fr))
 
                 writer.add_scalars('D/loss',
                                    {'D loss': errD.item()},
@@ -358,11 +358,11 @@ class cDCGAN():
                                    {'G loss': errG.item()},
                                    global_step=self.step)
                 writer.add_scalars('D/D(G(z))',
-                                   {'D_G_z1': D_G_z1, 'D_G_z2': D_G_z2},
+                                   {'D(x^, y)': D_G_z_fr},
                                    global_step=self.step)
                 self.step += 1
                 if i % 100 == 0:
-                    vutils.save_image(real_cpu[:64],
+                    vutils.save_image(real_img[:64],
                                       '%s/real_samples.png' % out_folder,
                                       normalize=True)
                     fake = self.netG(self.fixed_noise[:64],
