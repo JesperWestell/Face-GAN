@@ -198,7 +198,7 @@ class AC_GAN():
     def __init__(self,
                  dataroot,
                  attr_file,
-                 lr=2e-4,
+                 lr=1e-4,
                  workers=5,
                  batch_size=64,
                  nz=100,
@@ -321,6 +321,7 @@ class AC_GAN():
                                               1 - 0.99 * (
                                                   epoch - lr_start_epoch + 1) / (
                                                           lr_anneal_epoch - lr_start_epoch))))
+            lr_mult=1
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize 0.5( log(Ds(x))
