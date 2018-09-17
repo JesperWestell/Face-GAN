@@ -4,6 +4,8 @@ from PIL import Image
 import os
 import os.path
 import sys
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif']
 
@@ -38,6 +40,48 @@ def make_dataset(dir, extensions):
 
     return images
 
+def plot_heat_map(d, names):
+    names = [ n.replace('_', ' ') for n in names]
+    corr = np.corrcoef(d)
+    # This dictionary defines the colormap
+    cdict = {'red': ((0.0, 0.0, 0.0),
+                     (0.5, 0.5, 0.5),
+                     (1.0, 1.0, 1.0)),
+
+             'green': ((0.0, 0.0, 0.0),
+                     (0.5, 1.0, 1.0),
+                     (1.0, 0.0, 0.0)),
+
+             'blue': ((0.0, 1.0, 1.0),
+                      (0.5, 0.5, 0.5),
+                      (1.0, 0.0, 0.0))
+             }
+
+    # Create the colormap using the dictionary
+    GnRd = colors.LinearSegmentedColormap('GnRd', cdict)
+
+    # Make a figure and axes
+
+    fig, ax = plt.subplots(1, dpi=200)
+
+    # Plot the fake data
+    p = ax.pcolormesh(corr, cmap=GnRd, vmin=-0.8, vmax=1)
+
+    plt.xticks([x-0.5 for x in range(1, 41)],
+               names,
+               rotation='vertical', size= 'xx-small')
+    plt.yticks([x-0.5 for x in range(1, 41)],
+               names,
+               size='xx-small')
+    #ax.get_xaxis().set_ticks(names)
+    #ax.get_yaxis().set_ticks(names)
+
+    # Make a colorbar
+    fig.colorbar(p, ax=ax)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    plt.savefig('corr.png', bbox_inches='tight')
+    plt.show()
+
 def load_attributes(filename, subset):
     # kyamagu/build_celeba_lmdb.py
     with open(filename, 'r') as f:
@@ -50,6 +94,7 @@ def load_attributes(filename, subset):
         f.seek(0)
         data = np.loadtxt(f, usecols=[i + 1 for i in range(len(attributes))],
                           dtype=np.float32, skiprows=2)
+        plot_heat_map(data.T, attributes)
     assert files.size == data.shape[0]
     print("Finished loading {}".format(filename))
     if subset:

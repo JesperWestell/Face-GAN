@@ -1,8 +1,22 @@
 # Data
 data/*
+# Outputs
+outputs/*
+# Documents
+Documents/*
+# Databases
+databases/*
+# Summaries
+summaries/*
 # All saved params
 *.pth
 # Temporary python files
 *.pyc
 
+# Plotting directory
+plotting/*
+
+
+.idea/*
 *.DS_Store
+.DS_Store
